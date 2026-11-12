@@ -1,6 +1,6 @@
 // Shift Log offline cache. Bump RELEASE on every release so phones pick up the new files.
 // The same file serves the main app and the beta copy in /beta/; each keeps its own cache.
-const RELEASE = "5.1.0";
+const RELEASE = "5.1.1";
 const SCOPE = new URL(self.registration.scope).pathname;
 const CHANNEL = SCOPE.endsWith("/beta/") ? "beta" : "main";
 const PREFIX = "dutylog-" + CHANNEL + "-";

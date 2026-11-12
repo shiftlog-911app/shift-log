@@ -160,6 +160,9 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 .locked .err{font-size:13px;color:var(--warn);margin:-4px 0 0}
 .ghost.danger{color:var(--warn);border-color:var(--warn)}
 .btn.danger{background:var(--warn);color:#fff}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px;margin-top:4px}
+.kinds button{border:0;background:none;border-radius:6px;min-height:40px;font-size:14px;font-weight:600;color:var(--muted)}
+.kinds button[aria-checked="true"]{background:var(--accent);color:var(--accent-ink)}
 .modal p.say{margin:0;font-size:14px}
 .modal p.warn{margin:0;font-size:13px;color:var(--warn);font-weight:600}
 @media (prefers-reduced-motion:reduce){.tw{transition:none}}
@@ -285,7 +288,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
       <div class="locked" id="pageLocked" hidden>
         <h3><span class="lock" id="lockedIcon"></span><span id="lockedTitle"></span></h3>
         <p>This page is private. Enter its passcode to open it.</p>
-        <form id="unlockForm" autocomplete="off">
+        <form id="unlockForm" autocomplete="off" novalidate>
           <label for="unlockPass" hidden>Passcode</label>
           <input id="unlockPass" type="password" autocomplete="off" placeholder="Passcode" enterkeyhint="go">
           <button class="btn" id="unlockGo" type="submit">Open</button>
@@ -340,11 +343,16 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 </div>
 
 <div class="modal" id="passBox" hidden>
-  <form id="passForm" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="passTitle">
+  <form id="passForm" autocomplete="off" novalidate role="dialog" aria-modal="true" aria-labelledby="passTitle">
     <h3 id="passTitle">Make this page private</h3>
     <p class="say" id="passText"></p>
     <p class="warn" id="passWarn" hidden>If you forget this passcode, this page can't be opened again. Nobody can reset it, not even you.</p>
     <div id="oldWrap"><label for="passOld" id="passOldLabel">Current passcode</label><input id="passOld" type="password" autocomplete="off"></div>
+    <div id="kindWrap"><label>Passcode type</label>
+      <div class="kinds" role="radiogroup" aria-label="Passcode type">
+        <button type="button" role="radio" id="kindPin" aria-checked="true">Numbers</button>
+        <button type="button" role="radio" id="kindText" aria-checked="false">Letters &amp; numbers</button>
+      </div></div>
     <div id="newWrap"><label for="pass1" id="pass1Label">New passcode (at least 4 characters)</label><input id="pass1" type="password" autocomplete="off"></div>
     <div id="againWrap"><label for="pass2">Type it again</label><input id="pass2" type="password" autocomplete="off" enterkeyhint="done"></div>
     <p class="err" id="passErr" hidden></p>
@@ -370,7 +378,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 
 <script>
 "use strict";
-const APP_VERSION = "5.1.0";
+const APP_VERSION = "5.1.1";
 
 /* ---------- Categories. Never rename a key: stats are stored by key. ---------- */
 const CATS = [
@@ -1055,9 +1063,17 @@ function fillOpen(p, text){
   $("lockNow").hidden = !priv;
   showPagePane("open");
 }
+// A page's passcode is either numbers only (number pad) or letters and numbers (full keyboard).
+const isPin = p => !!(p && p.lockType==="pin");
+function setKeypad(id, pin){
+  const el = $(id);
+  if (pin){ el.setAttribute("inputmode","numeric"); el.setAttribute("pattern","[0-9]*"); }
+  else { el.removeAttribute("inputmode"); el.removeAttribute("pattern"); }
+}
 function showLocked(p){
   $("lockedIcon").innerHTML = LOCK_SVG;
   $("lockedTitle").textContent = p.title || "Untitled";
+  setKeypad("unlockPass", isPin(p));
   $("unlockPass").value = ""; $("unlockErr").hidden = true;
   $("unlockGo").disabled = false; $("unlockGo").textContent = "Open";
   $("lockNow").hidden = true;
@@ -1125,7 +1141,15 @@ $("unlockForm").addEventListener("submit", async e=>{
 });
 
 /* Passcode box: set (make private), change, or off (make public). */
-let passMode = null;
+let passMode = null, passKind = "pin";
+function setKind(k){
+  passKind = k;
+  $("kindPin").setAttribute("aria-checked", String(k==="pin"));
+  $("kindText").setAttribute("aria-checked", String(k!=="pin"));
+  setKeypad("pass1", k==="pin"); setKeypad("pass2", k==="pin");
+  $("pass1").value = ""; $("pass2").value = ""; $("passErr").hidden = true;
+  $("pass1Label").textContent = (passMode==="change" ? "New passcode" : "Passcode")+(k==="pin" ? " (at least "+MIN_PASS+" numbers)" : " (at least "+MIN_PASS+" characters)");
+}
 function openPass(mode){
   passMode = mode;
   const set = mode==="set", change = mode==="change", off = mode==="off";
@@ -1136,8 +1160,10 @@ function openPass(mode){
   $("passWarn").hidden = off;
   $("oldWrap").hidden = set;
   $("passOldLabel").textContent = off ? "Passcode" : "Current passcode";
-  $("newWrap").hidden = off; $("againWrap").hidden = off;
-  $("pass1Label").textContent = (change ? "New passcode" : "Passcode")+" (at least "+MIN_PASS+" characters)";
+  $("newWrap").hidden = off; $("againWrap").hidden = off; $("kindWrap").hidden = off;
+  const pg = cur && N.pages[cur.id];
+  setKeypad("passOld", isPin(pg));
+  setKind(change && pg && !isPin(pg) ? "text" : "pin"); // numbers by default
   $("passGo").textContent = set ? "Lock it" : change ? "Change it" : "Turn off";
   for (const f of ["passOld","pass1","pass2"]) $(f).value = "";
   $("passErr").hidden = true; $("passGo").disabled = false;
@@ -1154,7 +1180,8 @@ $("passForm").addEventListener("submit", async e=>{
   const p = N.pages[cur.id]; if (!p) return;
   const mode = passMode, old = $("passOld").value, a = $("pass1").value, b = $("pass2").value;
   if (mode!=="off"){
-    if (a.length < MIN_PASS) return passErr("Use at least "+MIN_PASS+" characters.");
+    if (passKind==="pin" && !/^[0-9]+$/.test(a)) return passErr("Use numbers only, or pick Letters & numbers.");
+    if (a.length < MIN_PASS) return passErr("Use at least "+MIN_PASS+(passKind==="pin" ? " numbers." : " characters."));
     if (a !== b) return passErr("The two passcodes don't match. Type them again.");
   }
   if (mode!=="set" && !old) return passErr("Enter the page's passcode.");
@@ -1166,13 +1193,13 @@ $("passForm").addEventListener("submit", async e=>{
       try { await unseal(old, p.enc); } catch(err){ $("passGo").disabled = false; $("passOld").value = ""; return passErr("That passcode isn't right."); }
     }
     if (mode==="off"){
-      p.private = false; p.body = text; delete p.enc; p.updated = nowIso();
+      p.private = false; p.body = text; delete p.enc; delete p.lockType; p.updated = nowIso();
       cur.key = null; cur.salt = null;
     } else {
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const key = await deriveKey(a, salt, ITER);
       p.enc = await seal(key, salt, ITER, text);
-      p.private = true; delete p.body; p.updated = nowIso();
+      p.private = true; p.lockType = passKind; delete p.body; p.updated = nowIso();
       cur.key = key; cur.salt = salt; cur.iter = ITER;
     }
     if (!saveNotes()) { $("passGo").disabled = false; return; }
@@ -1188,6 +1215,8 @@ $("privSwitch").addEventListener("click", ()=>{
   openPass(p && p.private ? "off" : "set");
 });
 $("changePass").addEventListener("click", ()=>openPass("change"));
+$("kindPin").addEventListener("click", ()=>{ setKind("pin"); $("pass1").focus(); });
+$("kindText").addEventListener("click", ()=>{ setKind("text"); $("pass1").focus(); });
 
 /* Delete */
 function openDel(){
