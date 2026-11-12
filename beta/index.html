@@ -165,6 +165,39 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 .kinds button[aria-checked="true"]{background:var(--accent);color:var(--accent-ink)}
 .modal p.say{margin:0;font-size:14px}
 .modal p.warn{margin:0;font-size:13px;color:var(--warn);font-weight:600}
+/* Report templates. On a computer the page widens and the finished narrative sits beside the blanks. */
+.tabs.three{grid-template-columns:1fr 1fr 1fr}
+.tpl-note{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--good);border-radius:8px;padding:10px 12px;font-size:13px}
+.tpl-note b{display:block;font-size:14px;margin-bottom:2px}
+.prow .tag{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.tpl-head{display:flex;flex-direction:column;gap:4px}
+.tpl-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.02em;line-height:1.1;color:var(--ink);text-transform:none}
+.tpl-head small{color:var(--muted);font-size:13px}
+.tpl-grid{display:flex;flex-direction:column;gap:18px}
+.fields{display:flex;flex-direction:column;gap:12px}
+.fld label{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;overflow-wrap:anywhere}
+.fld textarea{display:block;font:inherit;font-size:16px;line-height:1.4;width:100%;min-height:46px;padding:11px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);resize:none;overflow:hidden}
+.fld textarea:focus{border-color:var(--accent);outline:none}
+.fld.done label{color:var(--good)}
+.progress{font-size:13px;color:var(--muted)}
+.preview{font-family:var(--body);font-size:15px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-height:120px;user-select:text;-webkit-user-select:text}
+.preview .blank{background:var(--tile-hit);color:var(--ink);border-radius:3px;padding:0 2px;font-weight:600}
+.preview .fill{background:color-mix(in srgb,var(--good) 14%,transparent);border-radius:3px}
+.copybar{position:sticky;bottom:0;z-index:5;display:flex;gap:8px;padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line)}
+.copybar .btn{flex:1;min-height:52px;font-size:22px}
+.copybar .ghost{min-height:52px;padding:0 18px}
+.tpl-body{font-family:var(--mono);font-size:14px;line-height:1.5;width:100%;min-height:50vh;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-family:var(--mono);font-size:12px;background:var(--tile-hit);border-radius:4px;padding:2px 6px}
+.edit-acts{display:flex;flex-wrap:wrap;gap:8px}
+.edit-acts .btn{padding:10px 20px;min-height:44px}
+@media (min-width:900px){
+  body.wide .wrap{max-width:1120px}
+  .tpl-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:start}
+  .tpl-side{position:sticky;top:16px;display:flex;flex-direction:column;gap:10px}
+  .tpl-side .preview{max-height:calc(100vh - 170px);overflow:auto}
+  .copybar{position:static;border-top:0;padding:0;background:none}
+}
 @media (prefers-reduced-motion:reduce){.tw{transition:none}}
 </style>
 </head>
@@ -180,9 +213,10 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 
   <div class="betabar" id="betaBar" hidden><b>Beta</b><span>Test version. Its log is separate from your real Shift Log.</span></div>
 
-  <nav class="tabs" role="tablist" aria-label="Sections">
+  <nav class="tabs three" role="tablist" aria-label="Sections">
     <button type="button" role="tab" id="tabLog" aria-selected="true" aria-controls="logView">Log</button>
     <button type="button" role="tab" id="tabNotes" aria-selected="false" aria-controls="notesView">Notes</button>
+    <button type="button" role="tab" id="tabTpl" aria-selected="false" aria-controls="tplView">Templates</button>
   </nav>
 
   <div class="view" id="logView" role="tabpanel" aria-labelledby="tabLog">
@@ -243,7 +277,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 
   <details id="dataBox">
     <summary>Backup &amp; your data</summary>
-    <p>Your log lives only on this phone. Nothing is sent anywhere, and nobody else can see it. If you delete the app or clear Safari's website data, the log is gone, so save a backup now and then. Backups include your notes pages, and private pages stay locked inside the backup.</p>
+    <p>Your log lives only on this phone. Nothing is sent anywhere, and nobody else can see it. If you delete the app or clear Safari's website data, the log is gone, so save a backup now and then. Backups include your notes pages and your own report templates, and private pages stay locked inside the backup. Anything typed into a template's blanks is never in a backup.</p>
     <div class="acts-row">
       <button class="ghost" id="backupBtn" type="button">Save a backup</button>
       <button class="ghost" id="restoreBtn" type="button">Restore a backup</button>
@@ -313,6 +347,55 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
     </div>
   </div>
 
+  <div class="view" id="tplView" role="tabpanel" aria-labelledby="tabTpl" hidden>
+    <div class="view" id="tplList">
+      <div class="notes-head"><h2>Report templates</h2><button class="btn" id="newTpl" type="button">New template</button></div>
+      <div class="tpl-note"><b>Nothing you fill in is saved.</b>What you type into the blanks stays on the screen only. It is never saved and never goes into a backup. It clears when you leave the template, leave this tab, or close the app.</div>
+      <div class="list" id="tplListBox"></div>
+      <p class="hint" style="margin-top:0">Pick a call type, fill in the blanks, then tap Copy and paste it into your report. Works on a computer too. Your own wording changes and templates are saved and go into backups.</p>
+    </div>
+
+    <div class="view" id="tplFill" hidden>
+      <div class="pagebar">
+        <button class="ghost" id="fillBack" type="button">‹ All templates</button>
+        <button class="ghost" id="fillEdit" type="button">Edit wording</button>
+      </div>
+      <div class="tpl-head"><h2 id="fillName"></h2><small id="fillProgress" class="progress"></small></div>
+      <div class="tpl-grid">
+        <div class="fields" id="fillFields"></div>
+        <div class="tpl-side">
+          <section><h2>Finished narrative</h2>
+          <div class="preview" id="fillPreview" aria-live="off"></div></section>
+          <div class="copybar">
+            <button class="btn" id="fillCopy" type="button">Copy</button>
+            <button class="ghost" id="fillClear" type="button">Clear</button>
+          </div>
+          <p class="hint" style="margin-top:0">Not saved. Clears when you leave this screen or close the app. If you switch to another app for more than 2 minutes, it clears too.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="tplEdit" hidden>
+      <div class="pagebar">
+        <button class="ghost" id="editBack" type="button">‹ Back</button>
+      </div>
+      <label for="editName" hidden>Template name</label>
+      <input id="editName" class="ptitle" maxlength="60" placeholder="Template name" autocomplete="off">
+      <div class="tpl-note" style="border-left-color:var(--accent)"><b>How blanks work</b>Put each blank in square brackets, like <code>[DRIVER NAME]</code>. Use the same blank twice and it fills in both places. This wording is saved, so never type real names, dates of birth, plates or case details here. Those go in the blanks.</div>
+      <label for="editBody" hidden>Template wording</label>
+      <textarea id="editBody" class="tpl-body" spellcheck="true"></textarea>
+      <div><h2 style="font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px">Blanks found</h2><div class="chips" id="editChips"></div></div>
+      <p class="err" id="editErr" hidden style="color:var(--warn);font-size:13px;margin:0"></p>
+      <div class="edit-acts">
+        <button class="btn" id="editSave" type="button">Save</button>
+        <button class="ghost" id="editCancel" type="button">Cancel</button>
+        <button class="ghost" id="editReset" type="button" hidden>Reset to original</button>
+        <button class="ghost" id="editCopy" type="button">Make a copy</button>
+        <button class="ghost danger" id="editDelete" type="button" hidden>Delete template</button>
+      </div>
+    </div>
+  </div>
+
   <p class="foot" id="verLine">Shift Log v5 · works offline · data stays on this device</p>
 </div>
 
@@ -378,7 +461,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 
 <script>
 "use strict";
-const APP_VERSION = "5.1.1";
+const APP_VERSION = "5.2.0";
 
 /* ---------- Categories. Never rename a key: stats are stored by key. ---------- */
 const CATS = [
@@ -690,7 +773,8 @@ function renderShift(){
 function renderStats(){
   const n = Object.keys(S.logs).length, s = Object.keys(S.shifts).length;
   const p = Object.keys(N.pages).length;
-  $("dataStats").textContent = `${n} ${n===1?"entry":"entries"}, ${s} ended ${s===1?"shift":"shifts"} and ${p} notes ${p===1?"page":"pages"} saved on this device.`;
+  const t = ownCount();
+  $("dataStats").textContent = `${n} ${n===1?"entry":"entries"}, ${s} ended ${s===1?"shift":"shifts"}, ${p} notes ${p===1?"page":"pages"} and ${t} of your own ${t===1?"template":"templates"} saved on this device.`;
 }
 
 function showBanner(t){ $("bannerText").textContent=t; $("banner").hidden=false; }
@@ -861,7 +945,7 @@ $("copy").addEventListener("click", async ()=>{
 $("backupBtn").addEventListener("click", async ()=>{
   const d = new Date();
   const name = "shift-log-"+(CHANNEL==="beta"?"beta-":"")+"backup-"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+".json";
-  const json = JSON.stringify({app:"shift-log", format:1, version:APP_VERSION, exportedAt:d.toISOString(), data:S, notes:N}, null, 1);
+  const json = JSON.stringify({app:"shift-log", format:1, version:APP_VERSION, exportedAt:d.toISOString(), data:S, notes:N, templates:T}, null, 1);
   const file = new File([json], name, {type:"application/json"});
   try {
     if (navigator.canShare && navigator.canShare({files:[file]})){
@@ -901,9 +985,20 @@ $("restoreFile").addEventListener("change", async e=>{
         else if ((pg.updated||"") > (ex.updated||"")) N.pages[id] = pg;
       }
     }
-    if (save() && saveNotes()){
-      render(); renderNotes();
-      toast(`Restored. ${added} new ${added===1?"entry":"entries"}`+(addedP ? ` and ${addedP} notes ${addedP===1?"page":"pages"}` : "")+" added.");
+    let addedT = 0;
+    const tdd = j.templates; // older backups have no templates; that's fine
+    if (tdd && typeof tdd.items==="object"){
+      for (const [id,x] of Object.entries(tdd.items)){
+        if (!validTpl(x)) continue;
+        const ex = T.items[id];
+        if (!ex){ T.items[id] = x; if (!x.deleted && !STARTER[id]) addedT++; }
+        else if ((x.updated||"") > (ex.updated||"")) T.items[id] = x;
+      }
+    }
+    if (save() && saveNotes() && saveTpl()){
+      render(); renderNotes(); if (!$("tplList").hidden) renderTplList();
+      const extra = [addedP ? `${addedP} notes ${addedP===1?"page":"pages"}` : "", addedT ? `${addedT} ${addedT===1?"template":"templates"}` : ""].filter(Boolean);
+      toast(`Restored. ${added} new ${added===1?"entry":"entries"}`+(extra.length ? ", "+extra.join(" and ") : "")+" added.");
     }
   } catch(err){ toast("That file isn't a Shift Log backup."); }
 });
@@ -911,8 +1006,8 @@ $("wipeBtn").addEventListener("click", ()=>{
   const b = $("wipeBtn");
   if (!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent = "Tap again to erase all"; setTimeout(()=>{ b.classList.remove("armed"); b.textContent="Erase everything on this phone"; }, 4000); return; }
   b.classList.remove("armed"); b.textContent="Erase everything on this phone";
-  S = empty(); N = emptyNotes(); closePage();
-  if (save() && saveNotes()){ render(); renderNotes(); toast("Everything on this device was erased."); }
+  S = empty(); N = emptyNotes(); T = emptyTpl(); closePage(); wipeFill();
+  if (save() && saveNotes() && saveTpl()){ render(); renderNotes(); toast("Everything on this device was erased."); }
 });
 
 /* ---------- Install tip, storage, offline ---------- */
@@ -1244,22 +1339,395 @@ $("delForm").addEventListener("submit", async e=>{
   toast("Page deleted.");
 });
 
-/* Tabs. The Log tab is the home screen; Notes stays out of the way. Leaving Notes closes (and locks) the open page. */
+/* ---------- Report templates ----------
+   Starter wording lives here in the code. His edits and his own templates are saved on the device
+   (they hold no personal details). Whatever is typed into the blanks lives in memory only: never in
+   storage, never in a backup, and it is wiped when he leaves the template, the tab or the app. */
+const TKEY = CHANNEL==="beta" ? "dutylog.beta.templates.v1" : "dutylog.templates.v1";
+const AWAY_MS = 2*60*1000;
+const STARTERS = [
+{id:"s_stop_cit", name:"Traffic stop (citation)", body:
+`On the above date and time, I was on patrol in a marked patrol unit in the area of [PATROL AREA] when I observed a [VEHICLE YEAR, COLOR, MAKE AND MODEL] bearing [TAG STATE] tag [TAG NUMBER] traveling [DIRECTION] on [ROADWAY]. I observed the vehicle [VIOLATION OBSERVED AND HOW IT WAS DETERMINED].
+
+I activated my emergency lights and conducted a traffic stop on the vehicle at [STOP LOCATION]. I approached the vehicle and made contact with the driver, who was identified by [ID TYPE] as [DRIVER NAME], DOB [DOB], OLN [OLN]. I advised [DRIVER NAME] of the reason for the stop.
+
+[DRIVER NAME] stated [DRIVER STATEMENT].
+
+A records check through dispatch showed [RECORDS CHECK RESULTS].
+
+I issued [DRIVER NAME] citation(s) for [CHARGES CITED]. [DRIVER NAME] signed the citation(s) and was given a court date of [COURT DATE]. [DRIVER NAME] was released from the scene without incident.`},
+{id:"s_stop_warn", name:"Traffic stop (warning)", body:
+`On the above date and time, I was on patrol in a marked patrol unit in the area of [PATROL AREA] when I observed a [VEHICLE YEAR, COLOR, MAKE AND MODEL] bearing [TAG STATE] tag [TAG NUMBER] traveling [DIRECTION] on [ROADWAY]. I observed the vehicle [VIOLATION OBSERVED AND HOW IT WAS DETERMINED].
+
+I activated my emergency lights and conducted a traffic stop on the vehicle at [STOP LOCATION]. I approached the vehicle and made contact with the driver, who was identified by [ID TYPE] as [DRIVER NAME], DOB [DOB], OLN [OLN]. I advised [DRIVER NAME] of the reason for the stop.
+
+[DRIVER NAME] stated [DRIVER STATEMENT].
+
+A records check through dispatch showed [RECORDS CHECK RESULTS].
+
+I issued [DRIVER NAME] a [VERBAL OR WRITTEN] warning for [WARNING FOR]. [DRIVER NAME] was released from the scene without incident.`},
+{id:"s_crash", name:"Crash", body:
+`On the above date and time, I was dispatched to [CRASH LOCATION] in reference to a motor vehicle crash. I arrived on scene at approximately [ARRIVAL TIME].
+
+Upon arrival, I observed [SCENE ON ARRIVAL: VEHICLE POSITIONS, DAMAGE, ROAD AND WEATHER].
+
+Vehicle 1, a [VEHICLE 1 YEAR, COLOR, MAKE AND MODEL], was driven by [DRIVER 1 NAME], DOB [DRIVER 1 DOB]. Vehicle 2, a [VEHICLE 2 YEAR, COLOR, MAKE AND MODEL], was driven by [DRIVER 2 NAME], DOB [DRIVER 2 DOB].
+
+[DRIVER 1 NAME] stated [DRIVER 1 STATEMENT].
+
+[DRIVER 2 NAME] stated [DRIVER 2 STATEMENT].
+
+[WITNESS STATEMENTS, OR NO WITNESSES WERE LOCATED].
+
+[INJURIES AND EMS RESPONSE].
+
+Based on my observations of the scene, the damage to the vehicles and the statements given, [CONTRIBUTING FACTORS].
+
+[TOW AND VEHICLE DISPOSITION]. [CITATIONS ISSUED, OR NO CITATIONS WERE ISSUED]. Both drivers exchanged information and were given the crash report number. I cleared the scene at [CLEAR TIME].`},
+{id:"s_dui", name:"DUI arrest", body:
+`On the above date and time, I was on patrol in a marked patrol unit in the area of [PATROL AREA] when I observed a [VEHICLE YEAR, COLOR, MAKE AND MODEL] bearing [TAG STATE] tag [TAG NUMBER] traveling [DIRECTION] on [ROADWAY]. I observed the vehicle [DRIVING BEHAVIOR OBSERVED].
+
+I activated my emergency lights and conducted a traffic stop on the vehicle at [STOP LOCATION]. I made contact with the driver, who was identified by [ID TYPE] as [DRIVER NAME], DOB [DOB], OLN [OLN].
+
+While speaking with [DRIVER NAME], I observed [SIGNS OF IMPAIRMENT: ODOR, SPEECH, EYES, BALANCE, CONTAINERS].
+
+[DRIVER NAME] stated [DRIVER STATEMENT ABOUT DRINKING OR DRUG USE].
+
+I asked [DRIVER NAME] to exit the vehicle and perform Standardized Field Sobriety Tests. [SFST RESULTS: HGN, WALK AND TURN, ONE LEG STAND]. [PORTABLE BREATH TEST RESULT, OR NONE GIVEN].
+
+Based on my observations and the totality of the circumstances, I placed [DRIVER NAME] under arrest for DUI [ALCOHOL OR DRUGS] at approximately [ARREST TIME]. [DRIVER NAME] was handcuffed, checked for fit and double locked, and placed in the rear of my patrol unit.
+
+[MIRANDA AND ANY STATEMENTS AFTER ARREST].
+
+[DRIVER NAME] was read the Mississippi implied consent warning at [TIME IMPLIED CONSENT WAS READ]. [BREATH TEST: AGREED OR REFUSED, INSTRUMENT, RESULT AND TIME].
+
+The vehicle was [VEHICLE DISPOSITION]. [DRIVER NAME] was transported to [JAIL OR FACILITY] and charged with [CHARGES].`},
+{id:"s_warrant_pay", name:"Warrant (pay and release)", body:
+`On the above date and time, I [HOW THE CONTACT STARTED, E.G. RECEIVED A FLOCK ALERT ON A VEHICLE OR CONDUCTED A TRAFFIC STOP] at [LOCATION]. I made contact with [SUBJECT NAME], DOB [DOB].
+
+Dispatch advised [SUBJECT NAME] had an active [MISDEMEANOR OR FELONY] warrant through [ISSUING AGENCY] for [WARRANT CHARGE]. The warrant was confirmed by [WHO CONFIRMED THE WARRANT] at [CONFIRMATION TIME].
+
+I advised [SUBJECT NAME] of the warrant. [SUBJECT NAME] stated [SUBJECT STATEMENT].
+
+[SUBJECT NAME] paid the [FINE OR BOND] of $[AMOUNT PAID] by [HOW IT WAS PAID]. [ISSUING AGENCY] advised the warrant was cleared, and [SUBJECT NAME] was released from the scene without incident.`},
+{id:"s_warrant_arrest", name:"Warrant arrest", body:
+`On the above date and time, I [HOW THE CONTACT STARTED, E.G. RECEIVED A FLOCK ALERT ON A VEHICLE OR CONDUCTED A TRAFFIC STOP] at [LOCATION]. I made contact with [SUBJECT NAME], DOB [DOB].
+
+Dispatch advised [SUBJECT NAME] had an active [MISDEMEANOR OR FELONY] warrant through [ISSUING AGENCY] for [WARRANT CHARGE]. The warrant was confirmed by [WHO CONFIRMED THE WARRANT] at [CONFIRMATION TIME].
+
+I advised [SUBJECT NAME] of the warrant and placed [SUBJECT NAME] under arrest at approximately [ARREST TIME]. [SUBJECT NAME] was handcuffed, checked for fit and double locked. [SEARCH INCIDENT TO ARREST AND ANYTHING FOUND].
+
+[SUBJECT NAME] stated [SUBJECT STATEMENT].
+
+[SUBJECT NAME] was transported to [JAIL OR FACILITY] without incident and booked on the warrant. [ISSUING AGENCY] was notified of the arrest.`},
+{id:"s_assist", name:"Citizen assist", body:
+`On the above date and time, I was [DISPATCHED TO OR FLAGGED DOWN AT] [LOCATION] in reference to [TYPE OF ASSIST, E.G. MOTORIST ASSIST, LOCKOUT OR WELFARE CHECK].
+
+Upon arrival, I made contact with [CITIZEN NAME]. I observed [WHAT YOU OBSERVED].
+
+[CITIZEN NAME] stated [CITIZEN STATEMENT].
+
+I [ASSISTANCE PROVIDED]. [CITIZEN NAME] had no further needs, and I cleared the scene at [CLEAR TIME].`},
+{id:"s_call", name:"General call for service", body:
+`On the above date and time, I was dispatched to [ADDRESS] in reference to [CALL TYPE]. Dispatch advised [WHAT DISPATCH ADVISED]. I arrived on scene at approximately [ARRIVAL TIME].
+
+Upon arrival, I observed [WHAT YOU OBSERVED ON ARRIVAL].
+
+I made contact with [PERSON 1 NAME], DOB [PERSON 1 DOB]. [PERSON 1 NAME] stated [PERSON 1 STATEMENT].
+
+[OTHER PEOPLE CONTACTED AND WHAT THEY STATED].
+
+[ACTIONS TAKEN].
+
+[DISPOSITION, E.G. REPORT TAKEN, ADVISED, REFERRED OR ARREST MADE]. I cleared the scene at [CLEAR TIME].`},
+];
+const STARTER = Object.fromEntries(STARTERS.map(s=>[s.id,s]));
+const BLANK_RE = /\[([^\[\]\n]{1,80})\]/g;
+const blankKey = s => s.replace(/\s+/g," ").trim().toUpperCase();
+function blanksOf(body){
+  const out = [], seen = new Set(); let m; BLANK_RE.lastIndex = 0;
+  while ((m = BLANK_RE.exec(body))){ const k = blankKey(m[1]); if (k && !seen.has(k)){ seen.add(k); out.push({key:k, label:m[1].replace(/\s+/g," ").trim()}); } }
+  return out;
+}
+
+/* Saved part: {v:1, items:{id:{name, body, created, updated} | {deleted:true, updated}}}.
+   A starter id in items is his edit of that starter; a deleted entry there means "use the original".
+   Ids are stable and every change carries an updated time, so this can sync between devices later. */
+const emptyTpl = () => ({v:1, items:{}});
+function validTpl(t){
+  if (!t || typeof t!=="object" || typeof t.updated!=="string") return false;
+  if (t.deleted) return true;
+  return typeof t.name==="string" && typeof t.body==="string";
+}
+function loadTpl(){
+  try {
+    const raw = localStorage.getItem(TKEY);
+    if (!raw) return emptyTpl();
+    const t = JSON.parse(raw);
+    if (!t || typeof t.items!=="object") return emptyTpl();
+    for (const [id,x] of Object.entries(t.items)) if (!validTpl(x)) delete t.items[id];
+    t.v = 1; return t;
+  } catch(e){ return emptyTpl(); }
+}
+let T = loadTpl();
+function saveTpl(){
+  try { localStorage.setItem(TKEY, JSON.stringify(T)); return true; }
+  catch(e){ toast("Couldn't save that template on this device."); return false; }
+}
+function tplGet(id){
+  const o = T.items[id];
+  if (STARTER[id]){
+    if (o && !o.deleted) return {id, name:o.name, body:o.body, starter:true, edited:true};
+    return {id, name:STARTER[id].name, body:STARTER[id].body, starter:true, edited:false};
+  }
+  return o && !o.deleted ? {id, name:o.name, body:o.body, starter:false} : null;
+}
+function tplAll(){
+  const own = Object.keys(T.items).filter(id=>!STARTER[id]).map(tplGet).filter(Boolean).sort((a,b)=>a.name.localeCompare(b.name));
+  return STARTERS.map(s=>tplGet(s.id)).concat(own);
+}
+const ownCount = () => Object.keys(T.items).filter(id=>!STARTER[id] && !T.items[id].deleted).length;
+const newTplId = () => "t" + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,"") : Date.now().toString(36)+Math.random().toString(36).slice(2,10));
+
+function tplPane(which){
+  $("tplList").hidden = which!=="list";
+  $("tplFill").hidden = which!=="fill";
+  $("tplEdit").hidden = which!=="edit";
+  window.scrollTo(0,0);
+}
+function renderTplList(){
+  const el = $("tplListBox"); el.innerHTML = "";
+  for (const t of tplAll()){
+    const b = document.createElement("button"); b.type = "button"; b.className = "prow";
+    b.innerHTML = `<span class="pt"></span><span class="tag"></span>`;
+    b.querySelector(".pt").textContent = t.name || "Untitled";
+    b.querySelector(".tag").textContent = !t.starter ? "Yours" : t.edited ? "Edited" : "";
+    b.addEventListener("click", ()=>openFill(t.id));
+    el.appendChild(b);
+  }
+}
+
+/* Fill-in screen. FV holds the typed blanks in memory only. */
+let fillId = null, awayAt = 0, awayTimer = null;
+const FV = new Map();
+function autoGrow(ta){ ta.style.height = "auto"; ta.style.height = (ta.scrollHeight+2)+"px"; }
+function openFill(id){
+  const t = tplGet(id); if (!t) return;
+  wipeFill();
+  fillId = id;
+  $("fillName").textContent = t.name;
+  const box = $("fillFields");
+  const blanks = blanksOf(t.body);
+  if (!blanks.length) box.innerHTML = `<div class="empty">This template has no blanks. Tap Edit wording to add some in square brackets.</div>`;
+  blanks.forEach((b,i)=>{
+    const d = document.createElement("div"); d.className = "fld";
+    const fid = "fv"+i;
+    d.innerHTML = `<label></label><textarea rows="1" autocomplete="off" spellcheck="true"></textarea>`;
+    const lab = d.querySelector("label"), ta = d.querySelector("textarea");
+    lab.textContent = b.label; lab.htmlFor = fid; ta.id = fid; ta.dataset.key = b.key;
+    if (/\bNAME\b/.test(b.key)){ ta.setAttribute("autocapitalize","words"); ta.spellcheck = false; }
+    else if (/\b(DOB|OLN|TAG NUMBER|TIME|AMOUNT)\b/.test(b.key)){ ta.setAttribute("autocapitalize","characters"); ta.spellcheck = false; ta.setAttribute("autocorrect","off"); }
+    else ta.setAttribute("autocapitalize","sentences");
+    ta.addEventListener("input", ()=>{ FV.set(b.key, ta.value); d.classList.toggle("done", !!ta.value.trim()); autoGrow(ta); renderPreview(); });
+    box.appendChild(d);
+  });
+  renderPreview();
+  tplPane("fill");
+}
+function renderPreview(){
+  const t = fillId && tplGet(fillId); const pv = $("fillPreview"); pv.textContent = "";
+  if (!t) return;
+  let last = 0, m, filled = 0; const seen = new Set(), done = new Set(); BLANK_RE.lastIndex = 0;
+  while ((m = BLANK_RE.exec(t.body))){
+    if (m.index > last) pv.appendChild(document.createTextNode(t.body.slice(last, m.index)));
+    const k = blankKey(m[1]), v = (FV.get(k)||"").trim();
+    const s = document.createElement("span");
+    if (v){ s.className = "fill"; s.textContent = v; if (!done.has(k)){ done.add(k); filled++; } }
+    else { s.className = "blank"; s.textContent = m[0]; }
+    seen.add(k); pv.appendChild(s);
+    last = m.index + m[0].length;
+  }
+  if (last < t.body.length) pv.appendChild(document.createTextNode(t.body.slice(last)));
+  $("fillProgress").textContent = seen.size ? `${filled} of ${seen.size} blanks filled` : "";
+}
+function finalText(){
+  const t = fillId && tplGet(fillId); if (!t) return "";
+  return t.body.replace(BLANK_RE, (m, inner)=>{ const v = (FV.get(blankKey(inner))||"").trim(); return v || m; });
+}
+function emptyBlanks(){
+  const t = fillId && tplGet(fillId); if (!t) return 0;
+  return blanksOf(t.body).filter(b=>!(FV.get(b.key)||"").trim()).length;
+}
+// Throw away everything typed into the blanks: memory, the boxes and the preview.
+function wipeFill(){
+  FV.clear();
+  for (const ta of $("fillFields").querySelectorAll("textarea")) ta.value = "";
+  $("fillFields").innerHTML = ""; $("fillPreview").textContent = ""; $("fillProgress").textContent = "";
+  fillId = null;
+}
+function clearBlanks(){
+  FV.clear();
+  for (const ta of $("fillFields").querySelectorAll("textarea")){ ta.value = ""; autoGrow(ta); ta.parentNode.classList.remove("done"); }
+  renderPreview();
+}
+async function copyText(text){
+  try { if (navigator.clipboard && window.isSecureContext !== false){ await navigator.clipboard.writeText(text); return true; } } catch(e){}
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly",""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+  let ok = false; try { ok = document.execCommand("copy"); } catch(e){}
+  ta.remove(); return ok;
+}
+$("fillCopy").addEventListener("click", async ()=>{
+  const text = finalText(); if (!text) return;
+  const ok = await copyText(text);
+  if (!ok){
+    const r = document.createRange(); r.selectNodeContents($("fillPreview")); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    toast("Selected. Use Copy from the menu.");
+    return;
+  }
+  const n = emptyBlanks();
+  toast(n ? `Copied. ${n} ${n===1?"blank is":"blanks are"} still empty and show in [brackets].` : "Copied. Paste it into your report.", null, {label:"Clear", fn:()=>{ clearBlanks(); toast("Blanks cleared."); }});
+});
+$("fillClear").addEventListener("click", ()=>{
+  const b = $("fillClear");
+  if (!FV.size || ![...FV.values()].some(v=>v.trim())){ clearBlanks(); return; }
+  if (!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent = "Tap again"; setTimeout(()=>{ b.classList.remove("armed"); b.textContent = "Clear"; }, 3000); return; }
+  b.classList.remove("armed"); b.textContent = "Clear";
+  clearBlanks(); toast("Blanks cleared.");
+});
+$("fillBack").addEventListener("click", ()=>{ wipeFill(); renderTplList(); tplPane("list"); });
+$("fillEdit").addEventListener("click", ()=>{
+  const b = $("fillEdit");
+  if ([...FV.values()].some(v=>v.trim()) && !b.classList.contains("armed")){
+    b.classList.add("armed"); b.textContent = "Tap again: blanks will clear";
+    setTimeout(()=>{ b.classList.remove("armed"); b.textContent = "Edit wording"; }, 3500); return;
+  }
+  b.classList.remove("armed"); b.textContent = "Edit wording";
+  const id = fillId; wipeFill(); openEdit(id);
+});
+
+/* Editing the wording. This part is saved, because it holds no personal details. */
+let editId = null, editStart = null;
+function renderChips(){
+  const el = $("editChips"); el.innerHTML = "";
+  const bl = blanksOf($("editBody").value);
+  if (!bl.length){ el.innerHTML = `<small class="progress">No blanks yet. Type one in square brackets, like [DRIVER NAME].</small>`; return; }
+  for (const b of bl){ const s = document.createElement("span"); s.textContent = "["+b.label+"]"; el.appendChild(s); }
+}
+function openEdit(id, draft){
+  const t = id ? tplGet(id) : null;
+  editId = id || null;
+  $("editName").value = draft ? draft.name : t ? t.name : "";
+  $("editBody").value = draft ? draft.body : t ? t.body : "On the above date and time, I was dispatched to [ADDRESS] in reference to [CALL TYPE].\n\n";
+  editStart = draft ? {name:"", body:""} : {name:$("editName").value, body:$("editBody").value};
+  $("editReset").hidden = !(t && t.starter && t.edited);
+  $("editDelete").hidden = !(t && !t.starter);
+  $("editCopy").hidden = !t;
+  $("editErr").hidden = true;
+  for (const id2 of ["editBack","editCancel","editReset","editDelete"]) disarm($(id2));
+  renderChips();
+  tplPane("edit");
+  setTimeout(()=>$(t ? "editBody" : "editName").focus(), 30);
+}
+const LABELS = {editBack:"‹ Back", editCancel:"Cancel", editReset:"Reset to original", editDelete:"Delete template"};
+function disarm(b){ b.classList.remove("armed"); if (LABELS[b.id]) b.textContent = LABELS[b.id]; }
+function arm(b, text){
+  if (b.classList.contains("armed")){ disarm(b); return true; }
+  b.classList.add("armed"); b.textContent = text; setTimeout(()=>disarm(b), 3500); return false;
+}
+const editChanged = () => editStart && ($("editName").value!==editStart.name || $("editBody").value!==editStart.body);
+function leaveEdit(btn){
+  if (editChanged() && !arm(btn, "Tap again to drop changes")) return;
+  const id = editId; editId = null; editStart = null;
+  if (id && tplGet(id)) openFill(id); else { renderTplList(); tplPane("list"); }
+}
+$("editBody").addEventListener("input", renderChips);
+$("editBack").addEventListener("click", ()=>leaveEdit($("editBack")));
+$("editCancel").addEventListener("click", ()=>leaveEdit($("editCancel")));
+$("editSave").addEventListener("click", ()=>{
+  const name = $("editName").value.replace(/\s+/g," ").trim().slice(0,60);
+  const body = $("editBody").value.replace(/\s+$/,"");
+  const err = t => { $("editErr").textContent = t; $("editErr").hidden = false; };
+  if (!name) return err("Give the template a name first.");
+  if (!body.trim()) return err("The wording can't be empty.");
+  const now = nowIso();
+  let id = editId;
+  if (id && STARTER[id] && name===STARTER[id].name && body===STARTER[id].body){
+    T.items[id] = {deleted:true, updated:now}; // same as the original again
+  } else if (id){
+    const ex = T.items[id];
+    T.items[id] = {name, body, created:(ex && ex.created) || now, updated:now};
+  } else {
+    id = newTplId(); T.items[id] = {name, body, created:now, updated:now};
+  }
+  if (!saveTpl()) return;
+  editId = null; editStart = null;
+  toast("Template saved.");
+  openFill(id);
+});
+$("editReset").addEventListener("click", ()=>{
+  if (!editId || !STARTER[editId]) return;
+  if (!arm($("editReset"), "Tap again to reset")) return;
+  T.items[editId] = {deleted:true, updated:nowIso()};
+  if (!saveTpl()) return;
+  const id = editId; editId = null; editStart = null;
+  toast("Back to the original wording.");
+  openFill(id);
+});
+$("editDelete").addEventListener("click", ()=>{
+  if (!editId || STARTER[editId]) return;
+  if (!arm($("editDelete"), "Tap again to delete")) return;
+  T.items[editId] = {deleted:true, updated:nowIso()}; // kept as a marker so a later sync knows it was deleted
+  if (!saveTpl()) return;
+  editId = null; editStart = null;
+  renderTplList(); tplPane("list"); renderStats();
+  toast("Template deleted.");
+});
+$("editCopy").addEventListener("click", ()=>{
+  const name = ("Copy of " + ($("editName").value.trim() || "template")).slice(0,60);
+  openEdit(null, {name, body:$("editBody").value});
+  toast("This is a new copy. Tap Save to keep it.");
+});
+$("newTpl").addEventListener("click", ()=>openEdit(null));
+
+// Blanks never outlive the app: wipe them when it closes, and after 2 minutes away.
+function awayCheck(){ if (fillId && FV.size){ clearBlanks(); return true; } return false; }
+document.addEventListener("visibilitychange", ()=>{
+  if (document.hidden){
+    awayAt = Date.now(); clearTimeout(awayTimer);
+    awayTimer = setTimeout(()=>{ if (document.hidden) awayCheck(); }, AWAY_MS);
+  } else {
+    clearTimeout(awayTimer);
+    if (awayAt && Date.now()-awayAt >= AWAY_MS && awayCheck()) toast("Blanks cleared after 2 minutes away.");
+    awayAt = 0;
+  }
+});
+window.addEventListener("pagehide", ()=>{ FV.clear(); for (const ta of $("fillFields").querySelectorAll("textarea")) ta.value = ""; });
+window.addEventListener("pageshow", e=>{ if (e.persisted && fillId){ clearBlanks(); } });
+window.addEventListener("storage", e=>{ if (e.key===TKEY){ T = loadTpl(); if (!$("tplList").hidden) renderTplList(); } });
+
+/* Tabs. The Log tab is the home screen; Notes and Templates stay out of the way.
+   Leaving Notes closes (and locks) the open page. Leaving Templates wipes the blanks. */
 function showTab(t){
-  const notes = t==="notes";
-  if (!notes && cur) closePage();
-  $("logView").hidden = notes; $("notesView").hidden = !notes;
-  $("tabLog").setAttribute("aria-selected", String(!notes));
-  $("tabNotes").setAttribute("aria-selected", String(notes));
-  if (notes){
+  if (t!=="notes" && cur) closePage();
+  if (t!=="tpl"){ wipeFill(); editId = null; editStart = null; tplPane("list"); }
+  $("logView").hidden = t!=="log"; $("notesView").hidden = t!=="notes"; $("tplView").hidden = t!=="tpl";
+  $("tabLog").setAttribute("aria-selected", String(t==="log"));
+  $("tabNotes").setAttribute("aria-selected", String(t==="notes"));
+  $("tabTpl").setAttribute("aria-selected", String(t==="tpl"));
+  document.body.classList.toggle("wide", t==="tpl");
+  if (t==="notes"){
     renderNotes();
     let seen = false; try { seen = localStorage.getItem(NOTES_TIP)==="1"; } catch(e){}
     $("notesTip").hidden = seen;
   }
+  if (t==="tpl") renderTplList();
   window.scrollTo(0,0);
 }
 $("tabLog").addEventListener("click", ()=>showTab("log"));
 $("tabNotes").addEventListener("click", ()=>showTab("notes"));
+$("tabTpl").addEventListener("click", ()=>{ if ($("tabTpl").getAttribute("aria-selected")==="true"){ wipeFill(); tplPane("list"); renderTplList(); return; } showTab("tpl"); });
 $("notesTipOk").addEventListener("click", ()=>{ $("notesTip").hidden = true; try { localStorage.setItem(NOTES_TIP,"1"); } catch(e){} });
 
 // Re-lock a private page whenever the app is put away.
