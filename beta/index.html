@@ -1081,12 +1081,13 @@ function lockPage(){
   }
 }
 function closePage(){
-  if (cur) queueSave();
+  const pending = cur ? queueSave() : null;
   $("pageBody").value = ""; $("pageTitle").value = "";
   cur = null; dirty = false;
   closePass(); closeDel();
   showPagePane("list");
   renderNotes();
+  if (pending) pending.then(renderNotes); // show the new name once it's saved
 }
 
 $("pageTitle").addEventListener("input", onEdit);
