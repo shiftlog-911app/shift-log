@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Shift Log</title>
+<meta name="description" content="Patrol activity tracker. Data stays on this device.">
+<meta name="theme-color" content="#0f1318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SL Beta">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-600.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-700.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-mono-500.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-mono-600.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/ibm-plex-sans-400.woff2) format('woff2')}
+/* Layout: one phone column — shift bar, quick-log bar, tap tiles grouped like a citation book, recent entries, then the month sheet. */
+:root{
+  --bg:#eef0f2; --panel:#ffffff; --ink:#151a21; --muted:#5b6573; --line:#d5dae1;
+  --accent:#c98a00; --accent-ink:#1b1400; --tile:#f6f7f9; --tile-hit:#fff3d1;
+  --good:#1f7a4d; --warn:#b3261e;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1318; --panel:#171c23; --ink:#e8ebef; --muted:#97a1ae; --line:#2a313b;
+  --accent:#f2b21b; --accent-ink:#1b1400; --tile:#1d232b; --tile-hit:#3a2e0c;
+  --good:#5cc391; --warn:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --panel:#171c23; --ink:#e8ebef; --muted:#97a1ae; --line:#2a313b;
+  --accent:#f2b21b; --accent-ink:#1b1400; --tile:#1d232b; --tile-hit:#3a2e0c;
+  --good:#5cc391; --warn:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+.wrap{max-width:560px;margin:0 auto;padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:calc(48px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:3px solid var(--accent);padding-bottom:10px}
+h1{font-family:var(--display);font-weight:700;font-size:40px;line-height:.9;letter-spacing:.02em;text-transform:uppercase;margin:0}
+.sub{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:6px}
+.today{text-align:right;font-family:var(--mono);font-size:28px;font-weight:600;line-height:1}
+.today small{display:block;font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:500;margin-top:4px}
+.banner{background:var(--tile-hit);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.banner button{flex:none;background:none;border:0;color:var(--ink);font-weight:600;font-size:13px;padding:0 2px}
+form.say{display:flex;gap:8px}
+form.say input{flex:1;min-width:0;font:inherit;font-size:16px;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:0 18px;font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:12px;color:var(--muted);margin-top:-10px}
+section h2{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.tw{display:flex;min-height:58px;border-radius:8px;border:1px solid var(--line);background:var(--tile);overflow:hidden;transition:background .25s}
+.tw.hit{background:var(--tile-hit)}
+.tile{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 10px 10px 12px;border:0;background:none;text-align:left}
+.plus{flex:none;width:44px;border:0;border-left:1px solid var(--line);background:none;font-family:var(--mono);font-weight:600;font-size:13px;color:var(--muted)}
+.plus:active{background:var(--tile-hit)}
+.bulk-n{font-family:var(--mono);font-size:34px !important;text-align:center;letter-spacing:.04em}
+.tile span{font-weight:500;font-size:14px;line-height:1.2}
+.tile b{font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.list{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);font-size:14px}
+.row:first-child{border-top:0}
+.row time{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.row .what{flex:1;min-width:0;overflow-wrap:anywhere}
+.row .via{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.x{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--muted)}
+.x.armed{border-color:var(--warn);color:var(--warn)}
+.empty{padding:16px 12px;color:var(--muted);font-size:14px}
+.month{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.month h2{margin:0}
+.nav{display:flex;align-items:center;gap:6px}
+.nav button{background:var(--panel);border:1px solid var(--line);border-radius:6px;width:34px;height:34px;font-size:16px}
+.nav button:disabled{opacity:.4}
+.nav strong{font-family:var(--display);font-size:20px;min-width:128px;text-align:center}
+.sheet{font-family:var(--mono);font-size:15px}
+.sheet .row{justify-content:space-between}
+.sheet .row b{font-variant-numeric:tabular-nums}
+.sheet .row.zero{color:var(--muted)}
+.sheet .head{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;background:var(--tile);color:var(--ink)}
+.sheet .row span{min-width:0}
+.sheet .other{display:block;font-family:var(--body);font-size:12px;color:var(--muted);margin-top:2px}
+.sheetbar{display:flex;justify-content:flex-end;margin-top:8px}
+.ghost{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:14px;font-weight:500}
+.ghost.armed{border-color:var(--warn);color:var(--warn)}
+.toast{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;display:flex;gap:12px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.toast button{background:none;border:0;color:var(--accent);font-weight:600}
+.modal{position:fixed;inset:0;z-index:20;background:rgba(10,13,17,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal form{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.modal h3{margin:0;font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.03em;text-transform:uppercase}
+.modal label{font-size:13px;color:var(--muted)}
+.modal input{font:inherit;font-size:17px;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.modal .err{font-size:13px;color:var(--warn);margin:-4px 0 0}
+.modal .acts{display:flex;gap:8px;justify-content:flex-end}
+.modal .acts .btn{padding:10px 20px}
+.shiftbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.shiftbar .st{display:flex;align-items:center;gap:10px;min-width:0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.shiftbar.on .dot{background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 25%,transparent)}
+.shiftbar b{font-family:var(--display);font-size:20px;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.shiftbar small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.shiftbar .btn{padding:10px 16px;font-size:18px;white-space:nowrap;min-height:44px}
+.shiftbar .btn.end{background:var(--tile);color:var(--ink);border:1px solid var(--line)}
+.shiftbar .btn.armed{background:var(--warn);color:#fff;border-color:var(--warn)}
+.recap{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;overflow:hidden}
+.recap .hd{padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.recap .hd h2{margin:0;color:var(--ink)}
+.recap .hd span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.recap .row{font-family:var(--mono);justify-content:space-between}
+.recap .row.total{font-weight:600;background:var(--tile)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
+details summary{cursor:pointer;font-weight:600}
+details ol{padding-left:20px;margin:10px 0 0;display:flex;flex-direction:column;gap:6px}
+details p{margin:10px 0 0}
+.acts-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px 4px;border-radius:4px;word-break:break-all}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+.betabar{display:flex;gap:10px;align-items:center;background:var(--warn);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px}
+.betabar b{font-family:var(--display);font-size:18px;letter-spacing:.08em;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){.tw{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Shift Log</h1>
+      <div class="sub" id="monthLabel">Patrol activity</div>
+    </div>
+    <div class="today"><span id="todayCount">0</span><small>This shift</small></div>
+  </header>
+
+  <div class="betabar" id="betaBar" hidden><b>Beta</b><span>Test version. Its log is separate from your real Shift Log.</span></div>
+
+  <div class="banner" id="installTip" hidden>
+    <span id="installText">Add this to your Home Screen: tap Share, then <b>Add to Home Screen</b>. Open Shift Log from that icon from then on.</span>
+    <button type="button" id="installClose" aria-label="Hide tip">✕</button>
+  </div>
+
+  <div class="shiftbar" id="shiftBar">
+    <div class="st"><span class="dot"></span><div><b id="shiftState">Off shift</b><small id="shiftSince">Tap Start when you go on duty</small></div></div>
+    <button class="btn" id="shiftBtn" type="button">Start shift</button>
+  </div>
+
+  <section class="recap" id="recap" hidden>
+    <div class="hd"><h2>Last shift</h2><span id="recapWhen"></span></div>
+    <div id="recapRows"></div>
+  </section>
+
+  <div class="banner" id="banner" hidden><span id="bannerText"></span></div>
+
+  <form class="say" id="sayForm" autocomplete="off">
+    <label for="say" hidden>What happened</label>
+    <input id="say" placeholder="speeding, no insurance and tint" enterkeyhint="done" autocapitalize="none">
+    <button class="btn" id="sayBtn" type="submit">Log</button>
+  </form>
+  <p class="hint">Type it the way you'd say it, or tap the mic on your keyboard. One stop can log several charges. Charge types only: no names, plates or case numbers.</p>
+
+  <section>
+    <h2>Traffic citations</h2>
+    <div class="grid" id="g-cit"></div>
+  </section>
+  <section>
+    <h2>Arrests, warrants &amp; drugs</h2>
+    <div class="grid" id="g-arr"></div>
+  </section>
+  <section>
+    <h2>Activity</h2>
+    <div class="grid" id="g-act"></div>
+  </section>
+
+  <section>
+    <h2>Recent</h2>
+    <div class="list" id="recent"></div>
+  </section>
+
+  <section>
+    <div class="month">
+      <h2>Monthly review</h2>
+      <div class="nav">
+        <button id="prev" type="button" aria-label="Previous month">‹</button>
+        <strong id="sheetMonth">—</strong>
+        <button id="next" type="button" aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="list sheet" id="sheet"></div>
+    <div class="sheetbar"><button class="ghost" id="copy" type="button">Copy numbers</button></div>
+  </section>
+
+  <details id="dataBox">
+    <summary>Backup &amp; your data</summary>
+    <p>Your log lives only on this phone. Nothing is sent anywhere, and nobody else can see it. If you delete the app or clear Safari's website data, the log is gone, so save a backup now and then.</p>
+    <div class="acts-row">
+      <button class="ghost" id="backupBtn" type="button">Save a backup</button>
+      <button class="ghost" id="restoreBtn" type="button">Restore a backup</button>
+      <input type="file" id="restoreFile" accept="application/json,.json" hidden>
+    </div>
+    <p id="dataStats" class="hint" style="margin-top:10px"></p>
+    <div class="acts-row"><button class="ghost" id="wipeBtn" type="button">Erase everything on this phone</button></div>
+  </details>
+
+  <details>
+    <summary>Log hands-free with Siri (Safari only)</summary>
+    <p>Siri shortcuts open links in Safari, and Safari keeps its own log apart from the Home Screen icon. Only set this up if you use Shift Log in Safari instead of the icon.</p>
+    <ol>
+      <li>In Shortcuts, make a new shortcut named <b>Shift log</b>.</li>
+      <li>Add <b>Dictate Text</b> (Stop Listening: After Pause).</li>
+      <li>Add <b>Change Case</b> → lowercase, then <b>Replace Text</b>: find <code>[^a-z0-9]+</code> (Regular Expression on), replace with <code>-</code>.</li>
+      <li>Add <b>Format Date</b> on Current Date, custom format <code>yyyyMMddHHmmss</code>.</li>
+      <li>Add a <b>URL</b> action: <code id="siriUrl"></code> then <code>#log-</code>, the Updated Text, <code>-</code>, the Formatted Date.</li>
+      <li>Add <b>Open URLs</b>. Put the shortcut on Back Tap or the Action Button.</li>
+    </ol>
+  </details>
+
+  <p class="foot" id="verLine">Shift Log v5 · works offline · data stays on this device</p>
+</div>
+
+<div class="modal" id="otherBox" hidden>
+  <form id="otherForm" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="otherTitle">
+    <h3 id="otherTitle">Other citation</h3>
+    <label for="otherText">What was the citation for?</label>
+    <input id="otherText" maxlength="80" placeholder="Following too close" enterkeyhint="done" autocapitalize="sentences">
+    <p class="err" id="otherErr" hidden>Type what the citation was for first.</p>
+    <div class="acts">
+      <button class="ghost" type="button" id="otherCancel">Cancel</button>
+      <button class="btn" type="submit">Log</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="bulkBox" hidden>
+  <form id="bulkForm" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+    <h3 id="bulkTitle">Add a count</h3>
+    <label for="bulkN" id="bulkLabel">How many?</label>
+    <input id="bulkN" class="bulk-n" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="0" enterkeyhint="done">
+    <p class="err" id="bulkErr" hidden>Enter a number from 1 to 999.</p>
+    <div class="acts">
+      <button class="ghost" type="button" id="bulkCancel">Cancel</button>
+      <button class="btn" type="submit" id="bulkGo" disabled>Add</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden role="status"><span id="toastMsg"></span><button id="toastUndo" type="button" hidden>Undo</button></div>
+
+<script>
+"use strict";
+const APP_VERSION = "5.0.0";
+
+/* ---------- Categories. Never rename a key: stats are stored by key. ---------- */
+const CATS = [
+  {k:"speeding", label:"Speeding", g:"cit"},
+  {k:"no_insurance", label:"No insurance", g:"cit"},
+  {k:"tint", label:"Tint", g:"cit"},
+  {k:"seatbelt", label:"Seatbelt", g:"cit"},
+  {k:"child_restraint", label:"Child restraint", g:"cit"},
+  {k:"no_license", label:"No driver's license", g:"cit"},
+  {k:"dwls", label:"DWLS", g:"cit"},
+  {k:"expired_tag", label:"No tag", g:"cit"},
+  {k:"stop_sign", label:"Stop sign", g:"cit"},
+  {k:"red_light", label:"Red light", g:"cit"},
+  {k:"reckless", label:"Reckless driving", g:"cit"},
+  {k:"careless", label:"Careless driving", g:"cit"},
+  {k:"equipment", label:"Improper equipment", g:"cit"},
+  {k:"passing", label:"Improper passing", g:"cit"},
+  {k:"other_cit", label:"Other", g:"cit"},
+  {k:"dui", label:"DUI (alcohol)", g:"arr"},
+  {k:"dui_drug", label:"DUI (drugs)", g:"arr"},
+  {k:"misd", label:"Misdemeanor arrest", g:"arr"},
+  {k:"felony", label:"Felony arrest", g:"arr"},
+  {k:"warrant", label:"Misd warrant", g:"arr"},
+  {k:"warrant_fel", label:"Felony warrant", g:"arr"},
+  {k:"drug_misd", label:"Misd drugs", g:"arr"},
+  {k:"drug_fel", label:"Felony drugs", g:"arr"},
+  {k:"accidents", label:"Accidents worked", g:"act"},
+  {k:"calls", label:"Primary calls", g:"act"},
+  {k:"reports", label:"Offense reports", g:"act"},
+  {k:"assist", label:"Assistance to citizen", g:"act"},
+  {k:"special", label:"Special assignment", g:"act"},
+];
+const LABEL = Object.fromEntries(CATS.map(c=>[c.k,c.label]));
+
+/* The two FPD forms, line for line. A pair prints as "x / y" like the slash on the sheet. */
+const REPORT = [
+  {title:"Monthly Citation Report", rows:[
+    ["DUI arrests (alcohol)", ["dui"]],
+    ["DUI arrests (drugs)", ["dui_drug"]],
+    ["Seatbelt citations", ["seatbelt"]],
+    ["Child restraint citations", ["child_restraint"]],
+    ["Felony arrests", ["felony"]],
+    ["Misdemeanor arrests", ["misd"]],
+    ["DWLS citations", ["dwls"]],
+    ["No driver's license citations", ["no_license"]],
+    ["No insurance citations", ["no_insurance"]],
+    ["Speeding citations", ["speeding"]],
+    ["Reckless driving citations", ["reckless"]],
+    ["Careless driving citations", ["careless"]],
+    ["Running stop sign / red light", ["stop_sign","red_light"]],
+    ["No tag", ["expired_tag"]],
+    ["Improper equipment", ["equipment"]],
+    ["Tint", ["tint"]],
+    ["Misd warrants / felony warrants", ["warrant","warrant_fel"]],
+    ["Improper passing", ["passing"]],
+    ["Misd drugs / felony drugs", ["drug_misd","drug_fel"]],
+    ["Other", ["other_cit"]],
+  ]},
+  {title:"Monthly Activity Report", rows:[
+    ["Accidents worked", ["accidents"]],
+    ["Primary calls", ["calls"]],
+    ["Offense reports", ["reports"]],
+    ["Assistance to citizen", ["assist"]],
+    ["Special assignment", ["special"]],
+  ]},
+];
+
+const NUM = {one:1,a:1,an:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+
+/* Order matters: longer, more specific phrases claim their words first. */
+const PATTERNS = [
+  ["dui_drug", /\b(?:dui|dwi)s?\s+(?:drugs?|narcotics?|drugged)\b|\bdrugged\s+driv\w*/g],
+  ["dui", /\b(?:dui|dwi)s?(?:\s+alcohol)?\b|\bdrunk\s+driv\w*/g],
+  ["warrant_fel", /\bfelony\s+warrants?\b/g],
+  ["warrant", /\b(?:misd\w*\s+)?warrants?\b/g],
+  ["drug_fel", /\bfelony\s+(?:drugs?|possession|poss)\b/g],
+  ["drug_misd", /\b(?:misd\w*\s+)?(?:drugs?|marijuana|weed|paraphernalia|possession)\b/g],
+  ["felony", /\bfelon\w*/g],
+  ["misd", /\bmisdemeanou?rs?\b|\bmisd\b/g],
+  ["child_restraint", /\bchild\s+(?:restraints?|seats?)\b|\bcar\s*seats?\b|\bbooster\w*/g],
+  ["seatbelt", /\bseat\s*belts?\b|\bbelts?\b/g],
+  ["dwls", /\bdwls\b|\b(?:suspended|revoked)\s+(?:drivers?\s+)?(?:license|licence|dl)\b|\bdriving\s+(?:while|on)\s+(?:a\s+)?suspended\b/g],
+  ["no_license", /\b(?:no\s+)?(?:drivers?\s+)?(?:license|licence)\b|\b(?:no\s+)?dl\b/g],
+  ["no_insurance", /\b(?:no\s+)?insurance\b/g],
+  ["speeding", /\bspeed\w*/g],
+  ["reckless", /\breckless\w*/g],
+  ["careless", /\bcareless\w*/g],
+  ["stop_sign", /\bstop\s*signs?\b|\b(?:ran|run|running)\s+(?:a\s+|the\s+)?stop\b/g],
+  ["red_light", /\bred\s*lights?\b/g],
+  ["expired_tag", /\b(?:no|expired)\s+tags?\b|\btags?\b|\bregistration\b/g],
+  ["equipment", /\b(?:improper\s+)?equipment\b|\b(?:head|tail|brake)\s*lights?\b/g],
+  ["tint", /\btint\w*/g],
+  ["passing", /\b(?:improper\s+)?pass(?:ing)?\b/g],
+  ["accidents", /\b(?:accidents?|crash\w*|wrecks?|mvas?)\b/g],
+  ["calls", /\b(?:primary\s+)?calls?\b/g],
+  ["reports", /\b(?:offense\s+)?reports?\b/g],
+  ["assist", /\b(?:citizen\s+)?(?:assists?|assistance)\b|\bcitizens?\b/g],
+  ["special", /\bspecial\s+(?:assignments?|details?)\b/g],
+];
+const CIT_KEYS = new Set(CATS.filter(c=>c.g==="cit").map(c=>c.k));
+const FILLER = /\b(and|a|an|the|for|ticket|tickets|citation|citations|cite|cited|one|two|three|\d+)\b/g;
+
+function parse(text){
+  let s = " " + String(text||"").toLowerCase().replace(/[^a-z0-9]+/g," ") + " ";
+  const items = {};
+  for (const [k,re] of PATTERNS){
+    re.lastIndex = 0; let m; const hits = [];
+    while ((m = re.exec(s))) hits.push([m.index, m[0].length]);
+    for (const [i,len] of hits){
+      const before = s.slice(0,i).trim().split(" ").pop();
+      const n = /^\d+$/.test(before) ? Math.min(parseInt(before,10),50) : (NUM[before]||1);
+      items[k] = (items[k]||0) + n;
+      s = s.slice(0,i) + " ".repeat(len) + s.slice(i+len); // claim these words
+    }
+  }
+  const keys = Object.keys(items);
+  if (/\b(ticket|tickets|citation|citations|cite|cited)\b/.test(s) && !keys.some(k=>CIT_KEYS.has(k))){
+    items.other_cit = 1;
+    const what = s.replace(FILLER," ").replace(/\s+/g," ").trim();
+    if (what) items.__other = what;
+  }
+  if (/\barrest\w*/.test(s) && !keys.length) items.misd = 1;
+  return items;
+}
+
+/* ---------- Storage: everything stays on this device (localStorage). ---------- */
+const CHANNEL = /\/beta\/(index\.html)?$/.test(location.pathname) ? "beta" : "main";
+const KEY = CHANNEL==="beta" ? "dutylog.beta.v1" : "dutylog.v1";
+const empty = () => ({v:1, logs:{}, shift:null, shifts:{}});
+let storageOK = true;
+function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return empty();
+    const s = JSON.parse(raw);
+    if (!s || typeof s!=="object" || typeof s.logs!=="object") return empty();
+    s.shifts = s.shifts || {}; s.shift = s.shift || null; s.v = 1;
+    return s;
+  } catch(e){ storageOK = false; return empty(); }
+}
+let S = load();
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; return true; }
+  catch(e){
+    storageOK = false;
+    const full = e && (e.name==="QuotaExceededError" || e.code===22);
+    toast(full ? "Storage is full. Save a backup and remove old entries." : "Couldn't save on this phone. Private browsing may be on.");
+    return false;
+  }
+}
+const allLogs = () => Object.entries(S.logs).map(([id,d])=>({...d, _id:id}));
+
+/* ---------- Helpers ---------- */
+const monthKey = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+const nowMonth = () => monthKey(new Date());
+const monthName = k => { const [y,m]=k.split("-"); return new Date(+y,+m-1,1).toLocaleString(undefined,{month:"long",year:"numeric"}); };
+const shiftMonth = (k,n) => { const [y,m]=k.split("-"); return monthKey(new Date(+y,+m-1+n,1)); };
+const describe = (items, other) => Object.entries(items).filter(([k,n])=>LABEL[k]&&typeof n==="number")
+  .map(([k,n])=>(n>1?n+" × ":"")+(k==="other_cit"&&other ? "Other ("+other+")" : LABEL[k])).join(", ");
+const fmtTime = iso => { const d=new Date(iso); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+", "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); };
+const $ = id => document.getElementById(id);
+const newId = () => "e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+let viewMonth = nowMonth();
+let renderedMonth = viewMonth;
+
+function monthDocs(m){ return allLogs().filter(d=>d.month===m); }
+function totals(docs){
+  const t = {};
+  for (const d of docs) for (const [k,n] of Object.entries(d.items||{})) if (typeof n==="number") t[k]=(t[k]||0)+n;
+  return t;
+}
+function shiftWindow(){
+  const sh = S.shift;
+  if (!sh || !sh.startedAt) return [];
+  return allLogs().filter(d=>d.at>=sh.startedAt && (sh.active || !sh.endedAt || d.at<=sh.endedAt));
+}
+
+/* ---------- Rendering ---------- */
+function buildTiles(){
+  for (const g of ["cit","arr","act"]){
+    const el = $("g-"+g); el.innerHTML = "";
+    for (const c of CATS.filter(c=>c.g===g)){
+      const w = document.createElement("div");
+      w.className = "tw"; w.id = "w-"+c.k;
+      const b = document.createElement("button");
+      b.className = "tile"; b.id = "t-"+c.k; b.type = "button";
+      b.innerHTML = `<span></span><b>0</b>`;
+      b.querySelector("span").textContent = c.label;
+      b.addEventListener("click", ()=>{
+        if (c.k==="other_cit"){ openOther(""); return; }
+        logItems({[c.k]:1}, "tap", c.label);
+      });
+      w.appendChild(b);
+      if (c.k!=="other_cit"){
+        const p = document.createElement("button");
+        p.className = "plus"; p.type = "button"; p.textContent = "+#";
+        p.setAttribute("aria-label", "Enter a count for "+c.label);
+        p.addEventListener("click", ()=>openBulk(c.k));
+        w.appendChild(p);
+      }
+      el.appendChild(w);
+    }
+  }
+}
+
+function render(){
+  const NOW = nowMonth();
+  if (renderedMonth !== NOW){ if (viewMonth===renderedMonth) viewMonth = NOW; renderedMonth = NOW; }
+  $("monthLabel").textContent = monthName(NOW);
+  const t = S.shift && S.shift.active ? totals(shiftWindow()) : {};
+  for (const c of CATS){ const b=$("t-"+c.k); if (b) b.querySelector("b").textContent = t[c.k]||0; }
+  $("todayCount").textContent = Object.values(t).reduce((a,b)=>a+b,0);
+  renderShift();
+
+  const rec = $("recent");
+  const sorted = monthDocs(NOW).sort((a,b)=>b.at.localeCompare(a.at)).slice(0,10);
+  if (!sorted.length){
+    rec.innerHTML = `<div class="empty">Nothing logged this month yet. Tap a tile or type a stop above to log your first one.</div>`;
+  } else {
+    rec.innerHTML = "";
+    for (const d of sorted){
+      const r = document.createElement("div"); r.className="row";
+      const dt = new Date(d.at);
+      r.innerHTML = `<time></time><div class="what"><div></div><div class="via"></div></div><button class="x" type="button">Remove</button>`;
+      r.querySelector("time").textContent = dt.toLocaleDateString(undefined,{month:"numeric",day:"numeric"})+" "+dt.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+      r.querySelector(".what div").textContent = describe(d.items||{}, d.other);
+      r.querySelector(".via").textContent = d.via==="siri" ? "Siri" : d.via==="typed" ? "Typed" : d.via==="count" ? "Count entry" : "Tap";
+      const x = r.querySelector(".x");
+      x.addEventListener("click", ()=>{
+        if (!x.classList.contains("armed")){ x.classList.add("armed"); x.textContent="Remove?"; setTimeout(()=>{x.classList.remove("armed");x.textContent="Remove";},3000); return; }
+        removeDoc(d._id);
+      });
+      rec.appendChild(r);
+    }
+  }
+  renderSheet();
+  renderStats();
+}
+
+function otherList(docs){
+  const m = {};
+  for (const d of docs) if (d.items && d.items.other_cit) { const w = d.other || "unspecified"; m[w]=(m[w]||0)+d.items.other_cit; }
+  return Object.entries(m).map(([w,n])=>(n>1?n+" × ":"")+w).join(", ");
+}
+function reportLines(docs){
+  const t = totals(docs);
+  return REPORT.map(sec=>({title:sec.title, rows:sec.rows.map(([label,keys])=>({label, keys, vals:keys.map(k=>t[k]||0)}))}));
+}
+function renderSheet(){
+  const NOW = nowMonth();
+  $("sheetMonth").textContent = monthName(viewMonth);
+  $("next").disabled = viewMonth >= NOW;
+  const docs = monthDocs(viewMonth);
+  const others = otherList(docs);
+  const sh = $("sheet"); sh.innerHTML = "";
+  for (const sec of reportLines(docs)){
+    const h = document.createElement("div"); h.className="row head"; h.textContent = sec.title; sh.appendChild(h);
+    for (const r0 of sec.rows){
+      const any = r0.vals.some(v=>v);
+      const r = document.createElement("div"); r.className = "row"+(any?"":" zero");
+      r.innerHTML = `<span></span><b></b>`;
+      r.querySelector("span").textContent = r0.label;
+      if (r0.keys[0]==="other_cit" && others){ const o=document.createElement("span"); o.className="other"; o.textContent=others; r.querySelector("span").appendChild(o); }
+      r.querySelector("b").textContent = r0.vals.join(" / ");
+      sh.appendChild(r);
+    }
+  }
+}
+function sheetText(){
+  const docs = monthDocs(viewMonth);
+  const others = otherList(docs);
+  const out = [monthName(viewMonth)];
+  for (const sec of reportLines(docs)){
+    out.push("", sec.title.toUpperCase());
+    for (const r of sec.rows) out.push(r.label+": "+r.vals.join(" / ")+(r.keys[0]==="other_cit"&&others ? " ("+others+")" : ""));
+  }
+  return out.join("\n");
+}
+
+function renderShift(){
+  const sh = S.shift;
+  const on = !!(sh && sh.active);
+  $("shiftBar").classList.toggle("on", on);
+  $("shiftState").textContent = on ? "On shift" : "Off shift";
+  $("shiftSince").textContent = on ? "Since "+fmtTime(sh.startedAt) : "Tap Start when you go on duty";
+  const b = $("shiftBtn");
+  if (!b.classList.contains("armed")){ b.textContent = on ? "End shift" : "Start shift"; b.classList.toggle("end", on); }
+
+  const rc = $("recap");
+  if (on || !sh || !sh.endedAt){ rc.hidden = true; return; }
+  rc.hidden = false;
+  $("recapWhen").textContent = fmtTime(sh.startedAt)+" – "+fmtTime(sh.endedAt);
+  const t = totals(shiftWindow());
+  const rows = $("recapRows"); rows.innerHTML = "";
+  let total = 0;
+  for (const c of CATS){
+    const n = t[c.k]||0; if (!n) continue; total += n;
+    const r = document.createElement("div"); r.className="row";
+    r.innerHTML = `<span></span><b></b>`; r.querySelector("span").textContent=c.label; r.querySelector("b").textContent=n;
+    rows.appendChild(r);
+  }
+  if (!total){ rows.innerHTML = `<div class="empty">Nothing was logged that shift.</div>`; return; }
+  const r = document.createElement("div"); r.className="row total";
+  r.innerHTML = `<span>Total logged</span><b></b>`; r.querySelector("b").textContent=total;
+  rows.appendChild(r);
+}
+
+function renderStats(){
+  const n = Object.keys(S.logs).length, s = Object.keys(S.shifts).length;
+  $("dataStats").textContent = `${n} ${n===1?"entry":"entries"} and ${s} ended ${s===1?"shift":"shifts"} saved on this phone.`;
+}
+
+function showBanner(t){ $("bannerText").textContent=t; $("banner").hidden=false; }
+function hideBanner(){ $("banner").hidden=true; }
+
+let toastTimer;
+function toast(msg, undoId, action){
+  $("toastMsg").textContent = msg;
+  const u = $("toastUndo");
+  if (action){ u.hidden=false; u.textContent=action.label; u.onclick=()=>{ $("toast").hidden=true; action.fn(); }; }
+  else { u.textContent="Undo"; u.hidden = !undoId; u.onclick = undoId ? ()=>{ removeDoc(undoId); $("toast").hidden=true; } : null; }
+  $("toast").hidden = false; clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{$("toast").hidden=true;}, 4500);
+}
+function flash(items){
+  for (const k of Object.keys(items)){ const b=$("w-"+k); if(!b) continue; b.classList.add("hit"); setTimeout(()=>b.classList.remove("hit"),900); }
+}
+
+/* ---------- Actions ---------- */
+function startShift(){
+  const prev = S.shift;
+  S.shift = {active:true, startedAt:new Date().toISOString()};
+  if (!save()){ S.shift = prev; render(); return false; }
+  render(); return true;
+}
+function endShift(){
+  const sh = S.shift;
+  if (!sh || !sh.active) return;
+  const now = new Date().toISOString();
+  const t = totals(shiftWindow());
+  const prev = sh;
+  S.shift = {active:false, startedAt:sh.startedAt, endedAt:now};
+  S.shifts["s"+sh.startedAt.replace(/[^0-9]/g,"").slice(0,14)] = {startedAt:sh.startedAt, endedAt:now, totals:t};
+  if (!save()){ S.shift = prev; render(); return; }
+  render();
+  toast("Shift ended. Check the recap against your ticket book.");
+}
+
+function logItems(items, via, said, id){
+  if (!Object.keys(items).filter(k=>k!=="__other").length){
+    toast(`Didn't match "${said}" to a line.`, null, {label:"Log as Other", fn:()=>openOther(said)});
+    return;
+  }
+  const docId = id || newId();
+  if (id && S.logs[id]) return; // same Siri link opened twice
+  let autoStarted = false;
+  if (!S.shift || !S.shift.active){ if (!startShift()) return; autoStarted = true; }
+  const clean = {}; let other = "";
+  for (const [k,n] of Object.entries(items)) { if (k==="__other") other = String(n).slice(0,80); else if (LABEL[k]) clean[k]=n; }
+  const now = new Date();
+  const body = {month: monthKey(now), at: now.toISOString(), items: clean, via, said: String(said||"").slice(0,200)};
+  if (other) body.other = other;
+  S.logs[docId] = body;
+  if (!save()){ delete S.logs[docId]; render(); return; }
+  flash(clean); render();
+  toast((autoStarted?"Shift started. ":"")+"Logged: "+describe(clean, other), docId);
+}
+
+function removeDoc(id){
+  const d = S.logs[id]; if (!d) return;
+  delete S.logs[id];
+  if (!save()){ S.logs[id] = d; return; }
+  render(); toast("Removed.");
+}
+
+$("shiftBtn").addEventListener("click", ()=>{
+  const b = $("shiftBtn");
+  if (S.shift && S.shift.active){
+    if (!b.classList.contains("armed")){
+      b.classList.add("armed"); b.textContent = "Tap to confirm";
+      setTimeout(()=>{ b.classList.remove("armed"); renderShift(); }, 3500);
+      return;
+    }
+    b.classList.remove("armed");
+    endShift();
+  } else {
+    if (startShift()) toast("Shift started. Tiles are at zero.");
+  }
+});
+
+/* ---------- Siri / link logging: #log-<words>-<timestamp> ---------- */
+function handleHash(){
+  let h = "";
+  try { h = decodeURIComponent((location.hash||"").slice(1)); } catch(e){ h = (location.hash||"").slice(1); }
+  const m = /^log-(.*?)(?:-(\d{12,14}))?$/.exec(h);
+  if (!m) return;
+  const said = m[1].replace(/-/g," ").trim();
+  const id = m[2] ? "siri-"+m[2] : undefined;
+  try { history.replaceState(null,"",location.pathname+location.search); } catch(e){}
+  if (!said) return;
+  logItems(parse(said), "siri", said, id);
+}
+
+/* ---------- Count entry ---------- */
+let bulkKey = null;
+function bulkVal(){ const v = $("bulkN").value.replace(/\D/g,""); const n = parseInt(v,10); return n>=1 && n<=999 ? n : 0; }
+function syncBulk(){
+  const n = bulkVal(), go = $("bulkGo");
+  go.disabled = !n;
+  go.textContent = n ? `Add ${n} ${LABEL[bulkKey]}` : "Add";
+  $("bulkErr").hidden = true;
+}
+function openBulk(k){
+  bulkKey = k;
+  $("bulkTitle").textContent = LABEL[k];
+  $("bulkLabel").textContent = "How many to add?";
+  $("bulkN").value = "";
+  syncBulk();
+  $("bulkBox").hidden = false;
+  setTimeout(()=>$("bulkN").focus(), 30);
+}
+function closeBulk(){ $("bulkBox").hidden = true; bulkKey = null; }
+$("bulkN").addEventListener("input", ()=>{ $("bulkN").value = $("bulkN").value.replace(/\D/g,"").slice(0,3); syncBulk(); });
+$("bulkCancel").addEventListener("click", closeBulk);
+$("bulkBox").addEventListener("click", e=>{ if (e.target.id==="bulkBox") closeBulk(); });
+$("bulkForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const n = bulkVal();
+  if (!n || !bulkKey){ $("bulkErr").hidden = false; return; }
+  const k = bulkKey; closeBulk();
+  logItems({[k]:n}, "count", n+" "+LABEL[k]);
+});
+
+/* ---------- Other citation ---------- */
+function openOther(text){
+  $("otherText").value = text || "";
+  $("otherErr").hidden = true;
+  $("otherBox").hidden = false;
+  setTimeout(()=>$("otherText").focus(), 30);
+}
+function closeOther(){ $("otherBox").hidden = true; }
+$("otherCancel").addEventListener("click", closeOther);
+$("otherBox").addEventListener("click", e=>{ if (e.target.id==="otherBox") closeOther(); });
+document.addEventListener("keydown", e=>{
+  if (e.key!=="Escape") return;
+  if (!$("bulkBox").hidden) closeBulk();
+  if (!$("otherBox").hidden) closeOther();
+});
+$("otherForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const v = $("otherText").value.replace(/\s+/g," ").trim()
+    .replace(/\b(ticket|tickets|citation|citations)\b/gi,"").replace(/\s+/g," ").trim();
+  if (!v){ $("otherErr").hidden = false; $("otherText").focus(); return; }
+  closeOther();
+  $("say").value = "";
+  logItems({other_cit:1, __other:v}, "tap", v);
+});
+
+$("sayForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const v = $("say").value.trim(); if (!v) return;
+  logItems(parse(v), "typed", v);
+  $("say").value = "";
+  $("say").blur();
+});
+$("prev").addEventListener("click", ()=>{ viewMonth = shiftMonth(viewMonth,-1); renderSheet(); });
+$("next").addEventListener("click", ()=>{ if (viewMonth<nowMonth()){ viewMonth = shiftMonth(viewMonth,1); renderSheet(); } });
+$("copy").addEventListener("click", async ()=>{
+  const text = sheetText();
+  try { await navigator.clipboard.writeText(text); toast("Numbers copied."); }
+  catch(e){ const r=document.createRange(); r.selectNodeContents($("sheet")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Selected. Use Copy from the menu."); }
+});
+
+/* ---------- Backup / restore / erase ---------- */
+$("backupBtn").addEventListener("click", async ()=>{
+  const d = new Date();
+  const name = "shift-log-"+(CHANNEL==="beta"?"beta-":"")+"backup-"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+".json";
+  const json = JSON.stringify({app:"shift-log", format:1, version:APP_VERSION, exportedAt:d.toISOString(), data:S}, null, 1);
+  const file = new File([json], name, {type:"application/json"});
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"Shift Log backup"});
+      toast("Backup ready. Save it to Files.");
+      return;
+    }
+  } catch(e){ if (e && e.name==="AbortError") return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  toast("Backup saved to your downloads.");
+});
+$("restoreBtn").addEventListener("click", ()=>$("restoreFile").click());
+$("restoreFile").addEventListener("change", async e=>{
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    const d = j && (j.app==="shift-log" || j.app==="duty-log") && j.data;
+    if (!d || typeof d.logs!=="object") throw new Error("bad");
+    let added = 0;
+    for (const [id,doc] of Object.entries(d.logs)){
+      if (!doc || typeof doc.at!=="string" || typeof doc.month!=="string" || typeof doc.items!=="object") continue;
+      if (!S.logs[id]) added++;
+      S.logs[id] = doc;
+    }
+    for (const [id,sh] of Object.entries(d.shifts||{})) if (sh && sh.startedAt) S.shifts[id] = sh;
+    if (!S.shift && d.shift && d.shift.startedAt) S.shift = d.shift;
+    if (save()){ render(); toast(`Restored. ${added} new ${added===1?"entry":"entries"} added.`); }
+  } catch(err){ toast("That file isn't a Shift Log backup."); }
+});
+$("wipeBtn").addEventListener("click", ()=>{
+  const b = $("wipeBtn");
+  if (!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent = "Tap again to erase all"; setTimeout(()=>{ b.classList.remove("armed"); b.textContent="Erase everything on this phone"; }, 4000); return; }
+  b.classList.remove("armed"); b.textContent="Erase everything on this phone";
+  S = empty();
+  if (save()){ render(); toast("Everything on this phone was erased."); }
+});
+
+/* ---------- Install tip, storage, offline ---------- */
+const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+const TIP_KEY = "dutylog."+CHANNEL+".tipHidden";
+let tipHidden = false; try { tipHidden = localStorage.getItem(TIP_KEY)==="1"; } catch(e){}
+if (!standalone && !tipHidden){
+  if (!isIOS) $("installText").innerHTML = "Install this on your phone: open the browser menu, then <b>Add to Home screen</b> or <b>Install app</b>. Open Shift Log from that icon from then on.";
+  $("installTip").hidden = false;
+}
+$("installClose").addEventListener("click", ()=>{ $("installTip").hidden = true; try { localStorage.setItem(TIP_KEY,"1"); } catch(e){} });
+
+$("siriUrl").textContent = location.origin + location.pathname;
+if (CHANNEL==="beta"){
+  document.title = "Shift Log Beta";
+  $("betaBar").hidden = false;
+  $("verLine").textContent = "Shift Log v"+APP_VERSION+" BETA · test log, kept apart from your real one";
+}
+
+window.addEventListener("storage", e=>{ if (e.key===KEY){ S = load(); render(); } });
+document.addEventListener("visibilitychange", ()=>{ if (!document.hidden){ S = load(); render(); } });
+setInterval(()=>{ if (!document.hidden) render(); }, 60000); // roll the month over if left open
+
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+
+buildTiles();
+try { localStorage.setItem("dutylog.test","1"); localStorage.removeItem("dutylog.test"); }
+catch(e){ storageOK = false; }
+if (!storageOK) showBanner("This browser won't let Shift Log save. Turn off Private Browsing, then reopen it.");
+render();
+handleHash();
+window.addEventListener("hashchange", handleHash);
+</script>
+</body>
+</html>
