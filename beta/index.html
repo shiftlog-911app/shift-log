@@ -126,6 +126,42 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 .foot{font-size:12px;color:var(--muted);text-align:center}
 .betabar{display:flex;gap:10px;align-items:center;background:var(--warn);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px}
 .betabar b{font-family:var(--display);font-size:18px;letter-spacing:.08em;text-transform:uppercase}
+.view{display:flex;flex-direction:column;gap:18px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{border:0;background:none;border-radius:7px;min-height:42px;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.notes-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.notes-head h2{margin:0}
+.notes-head .btn{padding:10px 16px;font-size:18px;min-height:44px}
+.prow{display:flex;align-items:center;gap:10px;width:100%;padding:14px 12px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:15px}
+.prow:first-child{border-top:0}
+.prow:hover{background:var(--tile)}
+.prow .pt{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
+.prow time{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.lock{display:inline-flex;color:var(--accent);flex:none}
+.pagebar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ptitle{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.02em;line-height:1.1;width:100%;padding:6px 0;border:0;border-bottom:2px solid var(--line);background:none;color:var(--ink);border-radius:0}
+.ptitle:focus{outline:none;border-bottom-color:var(--accent)}
+.pbody{font:inherit;font-size:16px;line-height:1.5;width:100%;min-height:45vh;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);resize:vertical}
+.saved{font-size:12px;color:var(--muted);margin:-10px 0 0}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.setrow b{display:block;font-weight:600}
+.setrow small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.switch{flex:none;position:relative;width:54px;height:32px;border-radius:16px;border:0;background:var(--line);transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--good)}
+.switch[aria-checked="true"]::after{left:25px}
+.locked{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.locked h3{margin:0;display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.02em;overflow-wrap:anywhere}
+.locked p{margin:0;font-size:14px;color:var(--muted)}
+.locked form{display:flex;gap:8px}
+.locked input{flex:1;min-width:0;font:inherit;font-size:17px;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.locked .btn{padding:0 18px;min-height:46px}
+.locked .err{font-size:13px;color:var(--warn);margin:-4px 0 0}
+.ghost.danger{color:var(--warn);border-color:var(--warn)}
+.btn.danger{background:var(--warn);color:#fff}
+.modal p.say{margin:0;font-size:14px}
+.modal p.warn{margin:0;font-size:13px;color:var(--warn);font-weight:600}
 @media (prefers-reduced-motion:reduce){.tw{transition:none}}
 </style>
 </head>
@@ -141,6 +177,12 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 
   <div class="betabar" id="betaBar" hidden><b>Beta</b><span>Test version. Its log is separate from your real Shift Log.</span></div>
 
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tabLog" aria-selected="true" aria-controls="logView">Log</button>
+    <button type="button" role="tab" id="tabNotes" aria-selected="false" aria-controls="notesView">Notes</button>
+  </nav>
+
+  <div class="view" id="logView" role="tabpanel" aria-labelledby="tabLog">
   <div class="banner" id="installTip" hidden>
     <span id="installText">Add this to your Home Screen: tap Share, then <b>Add to Home Screen</b>. Open Shift Log from that icon from then on.</span>
     <button type="button" id="installClose" aria-label="Hide tip">✕</button>
@@ -198,7 +240,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
 
   <details id="dataBox">
     <summary>Backup &amp; your data</summary>
-    <p>Your log lives only on this phone. Nothing is sent anywhere, and nobody else can see it. If you delete the app or clear Safari's website data, the log is gone, so save a backup now and then.</p>
+    <p>Your log lives only on this phone. Nothing is sent anywhere, and nobody else can see it. If you delete the app or clear Safari's website data, the log is gone, so save a backup now and then. Backups include your notes pages, and private pages stay locked inside the backup.</p>
     <div class="acts-row">
       <button class="ghost" id="backupBtn" type="button">Save a backup</button>
       <button class="ghost" id="restoreBtn" type="button">Restore a backup</button>
@@ -220,6 +262,53 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
       <li>Add <b>Open URLs</b>. Put the shortcut on Back Tap or the Action Button.</li>
     </ol>
   </details>
+  </div>
+
+  <div class="view" id="notesView" role="tabpanel" aria-labelledby="tabNotes" hidden>
+    <div class="banner" id="notesTip" hidden>
+      <span>These notes are just for you and stay on this device. Don't put names, plates, dates of birth, case numbers or other case details in them.</span>
+      <button type="button" id="notesTipOk">Got it</button>
+    </div>
+
+    <div class="view" id="notesList">
+      <div class="notes-head"><h2>Notes</h2><button class="btn" id="newPage" type="button">New page</button></div>
+      <div class="list" id="pageList"></div>
+      <p class="hint" style="margin-top:0">Any page can be made private with its own passcode. Notes are included when you save a backup (Log tab, Backup &amp; your data).</p>
+    </div>
+
+    <div class="view" id="pageView" hidden>
+      <div class="pagebar">
+        <button class="ghost" id="pageBack" type="button">‹ All notes</button>
+        <button class="ghost" id="lockNow" type="button" hidden>Lock now</button>
+      </div>
+
+      <div class="locked" id="pageLocked" hidden>
+        <h3><span class="lock" id="lockedIcon"></span><span id="lockedTitle"></span></h3>
+        <p>This page is private. Enter its passcode to open it.</p>
+        <form id="unlockForm" autocomplete="off">
+          <label for="unlockPass" hidden>Passcode</label>
+          <input id="unlockPass" type="password" autocomplete="off" placeholder="Passcode" enterkeyhint="go">
+          <button class="btn" id="unlockGo" type="submit">Open</button>
+        </form>
+        <p class="err" id="unlockErr" hidden></p>
+        <div class="acts-row" style="margin-top:0"><button class="ghost danger" id="delLocked" type="button">Delete page</button></div>
+      </div>
+
+      <div class="view" id="pageOpen" hidden>
+        <label for="pageTitle" hidden>Page name</label>
+        <input id="pageTitle" class="ptitle" maxlength="80" placeholder="Page name" autocomplete="off" enterkeyhint="next">
+        <label for="pageBody" hidden>Page text</label>
+        <textarea id="pageBody" class="pbody" placeholder="Write here. It saves as you type."></textarea>
+        <p class="saved" id="savedLine">Saved on this device</p>
+        <div class="setrow">
+          <div><b>Private page</b><small id="privNote">Off. Anyone with this device can read it.</small></div>
+          <button class="switch" id="privSwitch" type="button" role="switch" aria-checked="false" aria-label="Private page"></button>
+        </div>
+        <div class="acts-row" id="privActs" hidden style="margin-top:0"><button class="ghost" id="changePass" type="button">Change passcode</button></div>
+        <div class="acts-row" style="margin-top:0"><button class="ghost danger" id="delPage" type="button">Delete page</button></div>
+      </div>
+    </div>
+  </div>
 
   <p class="foot" id="verLine">Shift Log v5 · works offline · data stays on this device</p>
 </div>
@@ -250,11 +339,38 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
   </form>
 </div>
 
+<div class="modal" id="passBox" hidden>
+  <form id="passForm" autocomplete="off" role="dialog" aria-modal="true" aria-labelledby="passTitle">
+    <h3 id="passTitle">Make this page private</h3>
+    <p class="say" id="passText"></p>
+    <p class="warn" id="passWarn" hidden>If you forget this passcode, this page can't be opened again. Nobody can reset it, not even you.</p>
+    <div id="oldWrap"><label for="passOld" id="passOldLabel">Current passcode</label><input id="passOld" type="password" autocomplete="off"></div>
+    <div id="newWrap"><label for="pass1" id="pass1Label">New passcode (at least 4 characters)</label><input id="pass1" type="password" autocomplete="off"></div>
+    <div id="againWrap"><label for="pass2">Type it again</label><input id="pass2" type="password" autocomplete="off" enterkeyhint="done"></div>
+    <p class="err" id="passErr" hidden></p>
+    <div class="acts">
+      <button class="ghost" type="button" id="passCancel">Cancel</button>
+      <button class="btn" type="submit" id="passGo">Lock it</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="delBox" hidden>
+  <form id="delForm" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+    <h3 id="delTitle">Delete this page?</h3>
+    <p class="say" id="delText">The page and everything on it will be gone. This can't be undone.</p>
+    <div class="acts">
+      <button class="ghost" type="button" id="delCancel">Cancel</button>
+      <button class="btn danger" type="submit">Delete</button>
+    </div>
+  </form>
+</div>
+
 <div class="toast" id="toast" hidden role="status"><span id="toastMsg"></span><button id="toastUndo" type="button" hidden>Undo</button></div>
 
 <script>
 "use strict";
-const APP_VERSION = "5.0.0";
+const APP_VERSION = "5.1.0";
 
 /* ---------- Categories. Never rename a key: stats are stored by key. ---------- */
 const CATS = [
@@ -565,7 +681,8 @@ function renderShift(){
 
 function renderStats(){
   const n = Object.keys(S.logs).length, s = Object.keys(S.shifts).length;
-  $("dataStats").textContent = `${n} ${n===1?"entry":"entries"} and ${s} ended ${s===1?"shift":"shifts"} saved on this phone.`;
+  const p = Object.keys(N.pages).length;
+  $("dataStats").textContent = `${n} ${n===1?"entry":"entries"}, ${s} ended ${s===1?"shift":"shifts"} and ${p} notes ${p===1?"page":"pages"} saved on this device.`;
 }
 
 function showBanner(t){ $("bannerText").textContent=t; $("banner").hidden=false; }
@@ -656,6 +773,7 @@ function handleHash(){
   const id = m[2] ? "siri-"+m[2] : undefined;
   try { history.replaceState(null,"",location.pathname+location.search); } catch(e){}
   if (!said) return;
+  showTab("log");
   logItems(parse(said), "siri", said, id);
 }
 
@@ -703,6 +821,8 @@ document.addEventListener("keydown", e=>{
   if (e.key!=="Escape") return;
   if (!$("bulkBox").hidden) closeBulk();
   if (!$("otherBox").hidden) closeOther();
+  if (!$("passBox").hidden) closePass();
+  if (!$("delBox").hidden) closeDel();
 });
 $("otherForm").addEventListener("submit", e=>{
   e.preventDefault();
@@ -733,7 +853,7 @@ $("copy").addEventListener("click", async ()=>{
 $("backupBtn").addEventListener("click", async ()=>{
   const d = new Date();
   const name = "shift-log-"+(CHANNEL==="beta"?"beta-":"")+"backup-"+d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+".json";
-  const json = JSON.stringify({app:"shift-log", format:1, version:APP_VERSION, exportedAt:d.toISOString(), data:S}, null, 1);
+  const json = JSON.stringify({app:"shift-log", format:1, version:APP_VERSION, exportedAt:d.toISOString(), data:S, notes:N}, null, 1);
   const file = new File([json], name, {type:"application/json"});
   try {
     if (navigator.canShare && navigator.canShare({files:[file]})){
@@ -763,15 +883,28 @@ $("restoreFile").addEventListener("change", async e=>{
     }
     for (const [id,sh] of Object.entries(d.shifts||{})) if (sh && sh.startedAt) S.shifts[id] = sh;
     if (!S.shift && d.shift && d.shift.startedAt) S.shift = d.shift;
-    if (save()){ render(); toast(`Restored. ${added} new ${added===1?"entry":"entries"} added.`); }
+    let addedP = 0;
+    const nd = j.notes; // older backups have no notes; that's fine
+    if (nd && typeof nd.pages==="object"){
+      for (const [id,pg] of Object.entries(nd.pages)){
+        if (!validPage(pg)) continue;
+        const ex = N.pages[id];
+        if (!ex){ N.pages[id] = pg; addedP++; }
+        else if ((pg.updated||"") > (ex.updated||"")) N.pages[id] = pg;
+      }
+    }
+    if (save() && saveNotes()){
+      render(); renderNotes();
+      toast(`Restored. ${added} new ${added===1?"entry":"entries"}`+(addedP ? ` and ${addedP} notes ${addedP===1?"page":"pages"}` : "")+" added.");
+    }
   } catch(err){ toast("That file isn't a Shift Log backup."); }
 });
 $("wipeBtn").addEventListener("click", ()=>{
   const b = $("wipeBtn");
   if (!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent = "Tap again to erase all"; setTimeout(()=>{ b.classList.remove("armed"); b.textContent="Erase everything on this phone"; }, 4000); return; }
   b.classList.remove("armed"); b.textContent="Erase everything on this phone";
-  S = empty();
-  if (save()){ render(); toast("Everything on this phone was erased."); }
+  S = empty(); N = emptyNotes(); closePage();
+  if (save() && saveNotes()){ render(); renderNotes(); toast("Everything on this device was erased."); }
 });
 
 /* ---------- Install tip, storage, offline ---------- */
@@ -800,6 +933,309 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
+
+/* ---------- Notes: pages kept on this device. A private page is encrypted with its own passcode. ----------
+   Private text is sealed with AES-GCM using a key made from the passcode with PBKDF2 (the browser's built-in
+   Web Crypto). The passcode itself is never stored. Only the page title stays readable. */
+const NKEY = CHANNEL==="beta" ? "dutylog.beta.notes.v1" : "dutylog.notes.v1";
+const NOTES_TIP = "dutylog."+CHANNEL+".notesTipSeen";
+const ITER = 600000;
+const MIN_PASS = 4;
+const CRYPTO_OK = !!(window.crypto && crypto.subtle && window.isSecureContext !== false);
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>';
+const emptyNotes = () => ({v:1, pages:{}});
+function validPage(p){
+  if (!p || typeof p!=="object" || typeof p.title!=="string") return false;
+  if (p.private) return !!(p.enc && typeof p.enc.salt==="string" && typeof p.enc.iv==="string" && typeof p.enc.ct==="string");
+  return typeof p.body==="string";
+}
+function loadNotes(){
+  try {
+    const raw = localStorage.getItem(NKEY);
+    if (!raw) return emptyNotes();
+    const n = JSON.parse(raw);
+    if (!n || typeof n.pages!=="object") return emptyNotes();
+    for (const [id,p] of Object.entries(n.pages)) if (!validPage(p)) delete n.pages[id];
+    n.v = 1; return n;
+  } catch(e){ return emptyNotes(); }
+}
+let N = loadNotes();
+function saveNotes(){
+  try { localStorage.setItem(NKEY, JSON.stringify(N)); return true; }
+  catch(e){
+    const full = e && (e.name==="QuotaExceededError" || e.code===22);
+    toast(full ? "Storage is full. Save a backup and remove old pages." : "Couldn't save on this device. Private browsing may be on.");
+    return false;
+  }
+}
+
+/* Crypto helpers */
+const te = new TextEncoder(), td = new TextDecoder();
+function b64(buf){ const a = new Uint8Array(buf); let s = ""; for (let i=0;i<a.length;i+=0x8000) s += String.fromCharCode.apply(null, a.subarray(i,i+0x8000)); return btoa(s); }
+const unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function deriveKey(pass, salt, iter){
+  const base = await crypto.subtle.importKey("raw", te.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:iter, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+}
+async function seal(key, salt, iter, text){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, te.encode(text));
+  return {kdf:"PBKDF2-SHA256", cipher:"AES-GCM-256", iter, salt:b64(salt), iv:b64(iv), ct:b64(ct)};
+}
+async function unseal(pass, enc){ // throws if the passcode is wrong
+  const salt = unb64(enc.salt), iter = enc.iter || ITER;
+  const key = await deriveKey(pass, salt, iter);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(enc.iv)}, key, unb64(enc.ct));
+  return {key, salt, iter, text:td.decode(pt)};
+}
+
+/* Open page state. key is only held while a private page is open; it is dropped on lock. */
+let cur = null;      // {id, key, salt, iter}
+let dirty = false, saveTimer = null, saveChain = Promise.resolve();
+const nowIso = () => new Date().toISOString();
+// Stable unique id per page, so pages can sync between devices later without clashing.
+const newPageId = () => "n" + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g,"") : Date.now().toString(36)+Math.random().toString(36).slice(2,10));
+const pageDate = iso => { const d = new Date(iso); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); };
+
+function renderNotes(){
+  const el = $("pageList"); el.innerHTML = "";
+  const pages = Object.entries(N.pages).sort((a,b)=>(b[1].updated||"").localeCompare(a[1].updated||""));
+  if (!pages.length){ el.innerHTML = `<div class="empty">No pages yet. Tap New page to start one.</div>`; }
+  for (const [id,p] of pages){
+    const b = document.createElement("button"); b.type = "button"; b.className = "prow";
+    b.innerHTML = (p.private ? `<span class="lock" title="Private">${LOCK_SVG}</span>` : "") + `<span class="pt"></span><time></time>`;
+    b.querySelector(".pt").textContent = p.title || "Untitled";
+    b.querySelector("time").textContent = p.updated ? pageDate(p.updated) : "";
+    b.setAttribute("aria-label", (p.title||"Untitled")+(p.private?", private":""));
+    b.addEventListener("click", ()=>openPage(id));
+    el.appendChild(b);
+  }
+  renderStats();
+}
+
+function snapshot(){
+  return {id:cur.id, title:$("pageTitle").value, body:$("pageBody").value, key:cur.key, salt:cur.salt, iter:cur.iter};
+}
+async function writePage(s){
+  const p = N.pages[s.id]; if (!p) return;
+  p.title = s.title.replace(/\s+/g," ").trim().slice(0,80) || "Untitled";
+  if (p.private){ if (!s.key) return; p.enc = await seal(s.key, s.salt, s.iter, s.body); delete p.body; }
+  else { p.body = s.body; delete p.enc; }
+  p.updated = nowIso();
+  if (saveNotes() && cur && cur.id===s.id) $("savedLine").textContent = p.private ? "Saved and locked with your passcode" : "Saved on this device";
+}
+function queueSave(){
+  clearTimeout(saveTimer);
+  if (!cur || !dirty) return saveChain;
+  dirty = false;
+  const snap = snapshot();
+  saveChain = saveChain.then(()=>writePage(snap)).catch(()=>toast("Couldn't save that page."));
+  return saveChain;
+}
+function onEdit(){
+  dirty = true; $("savedLine").textContent = "Saving…";
+  clearTimeout(saveTimer); saveTimer = setTimeout(queueSave, 400);
+}
+
+function showPagePane(which){
+  $("notesList").hidden = which!=="list";
+  $("pageView").hidden = which==="list";
+  $("pageLocked").hidden = which!=="locked";
+  $("pageOpen").hidden = which!=="open";
+  window.scrollTo(0,0);
+}
+function fillOpen(p, text){
+  $("pageTitle").value = p.title==="Untitled" ? "" : p.title;
+  $("pageBody").value = text;
+  $("savedLine").textContent = "Saved on this device";
+  const priv = !!p.private;
+  $("privSwitch").setAttribute("aria-checked", String(priv));
+  $("privNote").textContent = priv ? "On. Locks when you leave this page or the app." : "Off. Anyone with this device can read it.";
+  $("privActs").hidden = !priv;
+  $("lockNow").hidden = !priv;
+  showPagePane("open");
+}
+function showLocked(p){
+  $("lockedIcon").innerHTML = LOCK_SVG;
+  $("lockedTitle").textContent = p.title || "Untitled";
+  $("unlockPass").value = ""; $("unlockErr").hidden = true;
+  $("unlockGo").disabled = false; $("unlockGo").textContent = "Open";
+  $("lockNow").hidden = true;
+  showPagePane("locked");
+  setTimeout(()=>$("unlockPass").focus(), 30);
+}
+function openPage(id){
+  const p = N.pages[id]; if (!p) return;
+  cur = {id, key:null, salt:null, iter:ITER}; dirty = false;
+  if (p.private) showLocked(p); else fillOpen(p, p.body||"");
+}
+// Save, wipe the private text off the screen and out of memory, and show the lock screen.
+function lockPage(){
+  if (!cur) return;
+  const p = N.pages[cur.id];
+  queueSave();
+  if (p && p.private){
+    $("pageBody").value = ""; $("pageTitle").value = "";
+    cur.key = null; cur.salt = null;
+    showLocked(p);
+  }
+}
+function closePage(){
+  if (cur) queueSave();
+  $("pageBody").value = ""; $("pageTitle").value = "";
+  cur = null; dirty = false;
+  closePass(); closeDel();
+  showPagePane("list");
+  renderNotes();
+}
+
+$("pageTitle").addEventListener("input", onEdit);
+$("pageBody").addEventListener("input", onEdit);
+$("pageTitle").addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); $("pageBody").focus(); } });
+$("pageBack").addEventListener("click", closePage);
+$("lockNow").addEventListener("click", ()=>{ lockPage(); toast("Page locked."); });
+$("newPage").addEventListener("click", ()=>{
+  const id = newPageId(), t = nowIso();
+  N.pages[id] = {title:"Untitled", created:t, updated:t, body:""};
+  if (!saveNotes()){ delete N.pages[id]; return; }
+  openPage(id);
+  setTimeout(()=>$("pageTitle").focus(), 30);
+});
+
+$("unlockForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  if (!cur) return;
+  const id = cur.id, p = N.pages[id]; const pass = $("unlockPass").value;
+  if (!pass) return;
+  if (!CRYPTO_OK){ $("unlockErr").textContent = "This browser can't open private pages."; $("unlockErr").hidden = false; return; }
+  $("unlockGo").disabled = true; $("unlockGo").textContent = "Opening…"; $("unlockErr").hidden = true;
+  try {
+    const r = await unseal(pass, p.enc);
+    if (!cur || cur.id!==id || document.hidden) return; // left the page while it was opening
+    cur.key = r.key; cur.salt = r.salt; cur.iter = r.iter;
+    $("unlockPass").value = "";
+    fillOpen(p, r.text);
+  } catch(err){
+    $("unlockPass").value = "";
+    $("unlockErr").textContent = "That passcode isn't right. Try again.";
+    $("unlockErr").hidden = false;
+    $("unlockPass").focus();
+  } finally { $("unlockGo").disabled = false; $("unlockGo").textContent = "Open"; }
+});
+
+/* Passcode box: set (make private), change, or off (make public). */
+let passMode = null;
+function openPass(mode){
+  passMode = mode;
+  const set = mode==="set", change = mode==="change", off = mode==="off";
+  $("passTitle").textContent = set ? "Make this page private" : change ? "Change passcode" : "Turn privacy off";
+  $("passText").textContent = set ? "Pick a passcode for this page. You'll need it every time you open the page. The page name still shows in your list, so keep the name plain."
+    : change ? "Enter the passcode you use now, then pick a new one."
+    : "Anyone using this device will be able to read this page. Enter the page's passcode to turn privacy off.";
+  $("passWarn").hidden = off;
+  $("oldWrap").hidden = set;
+  $("passOldLabel").textContent = off ? "Passcode" : "Current passcode";
+  $("newWrap").hidden = off; $("againWrap").hidden = off;
+  $("pass1Label").textContent = (change ? "New passcode" : "Passcode")+" (at least "+MIN_PASS+" characters)";
+  $("passGo").textContent = set ? "Lock it" : change ? "Change it" : "Turn off";
+  for (const f of ["passOld","pass1","pass2"]) $(f).value = "";
+  $("passErr").hidden = true; $("passGo").disabled = false;
+  $("passBox").hidden = false;
+  setTimeout(()=>$(set ? "pass1" : "passOld").focus(), 30);
+}
+function closePass(){ $("passBox").hidden = true; passMode = null; for (const f of ["passOld","pass1","pass2"]) $(f).value = ""; }
+function passErr(t){ $("passErr").textContent = t; $("passErr").hidden = false; }
+$("passCancel").addEventListener("click", closePass);
+$("passBox").addEventListener("click", e=>{ if (e.target.id==="passBox") closePass(); });
+$("passForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  if (!cur || !passMode) return;
+  const p = N.pages[cur.id]; if (!p) return;
+  const mode = passMode, old = $("passOld").value, a = $("pass1").value, b = $("pass2").value;
+  if (mode!=="off"){
+    if (a.length < MIN_PASS) return passErr("Use at least "+MIN_PASS+" characters.");
+    if (a !== b) return passErr("The two passcodes don't match. Type them again.");
+  }
+  if (mode!=="set" && !old) return passErr("Enter the page's passcode.");
+  $("passGo").disabled = true; $("passErr").hidden = true;
+  const text = $("pageBody").value;
+  try {
+    await queueSave();
+    if (mode!=="set"){
+      try { await unseal(old, p.enc); } catch(err){ $("passGo").disabled = false; $("passOld").value = ""; return passErr("That passcode isn't right."); }
+    }
+    if (mode==="off"){
+      p.private = false; p.body = text; delete p.enc; p.updated = nowIso();
+      cur.key = null; cur.salt = null;
+    } else {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const key = await deriveKey(a, salt, ITER);
+      p.enc = await seal(key, salt, ITER, text);
+      p.private = true; delete p.body; p.updated = nowIso();
+      cur.key = key; cur.salt = salt; cur.iter = ITER;
+    }
+    if (!saveNotes()) { $("passGo").disabled = false; return; }
+    closePass();
+    fillOpen(p, text);
+    toast(mode==="set" ? "Page is private. It locks when you leave it." : mode==="change" ? "Passcode changed." : "Privacy is off for this page.");
+  } catch(err){ $("passGo").disabled = false; passErr("Something went wrong. Nothing was changed."); }
+});
+$("privSwitch").addEventListener("click", ()=>{
+  if (!cur) return;
+  const p = N.pages[cur.id];
+  if (!CRYPTO_OK){ toast("Private pages need Shift Log opened from its https link."); return; }
+  openPass(p && p.private ? "off" : "set");
+});
+$("changePass").addEventListener("click", ()=>openPass("change"));
+
+/* Delete */
+function openDel(){
+  if (!cur) return;
+  const p = N.pages[cur.id];
+  $("delText").textContent = (p && p.private ? "This private page and everything on it will be gone, even without the passcode." : "The page and everything on it will be gone.")+" This can't be undone.";
+  $("delBox").hidden = false;
+}
+function closeDel(){ $("delBox").hidden = true; }
+$("delPage").addEventListener("click", openDel);
+$("delLocked").addEventListener("click", openDel);
+$("delCancel").addEventListener("click", closeDel);
+$("delBox").addEventListener("click", e=>{ if (e.target.id==="delBox") closeDel(); });
+$("delForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  if (!cur) return;
+  const id = cur.id;
+  clearTimeout(saveTimer); dirty = false; await saveChain;
+  const p = N.pages[id];
+  delete N.pages[id];
+  if (!saveNotes()){ N.pages[id] = p; closeDel(); return; }
+  closeDel();
+  $("pageBody").value = ""; cur = null;
+  showPagePane("list"); renderNotes();
+  toast("Page deleted.");
+});
+
+/* Tabs. The Log tab is the home screen; Notes stays out of the way. Leaving Notes closes (and locks) the open page. */
+function showTab(t){
+  const notes = t==="notes";
+  if (!notes && cur) closePage();
+  $("logView").hidden = notes; $("notesView").hidden = !notes;
+  $("tabLog").setAttribute("aria-selected", String(!notes));
+  $("tabNotes").setAttribute("aria-selected", String(notes));
+  if (notes){
+    renderNotes();
+    let seen = false; try { seen = localStorage.getItem(NOTES_TIP)==="1"; } catch(e){}
+    $("notesTip").hidden = seen;
+  }
+  window.scrollTo(0,0);
+}
+$("tabLog").addEventListener("click", ()=>showTab("log"));
+$("tabNotes").addEventListener("click", ()=>showTab("notes"));
+$("notesTipOk").addEventListener("click", ()=>{ $("notesTip").hidden = true; try { localStorage.setItem(NOTES_TIP,"1"); } catch(e){} });
+
+// Re-lock a private page whenever the app is put away.
+document.addEventListener("visibilitychange", ()=>{ if (document.hidden){ if (cur) { queueSave(); lockPage(); } } });
+window.addEventListener("pagehide", ()=>{ if (cur){ queueSave(); lockPage(); } });
+
 
 buildTiles();
 try { localStorage.setItem("dutylog.test","1"); localStorage.removeItem("dutylog.test"); }
