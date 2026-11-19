@@ -198,6 +198,33 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
   .tpl-side .preview{max-height:calc(100vh - 170px);overflow:auto}
   .copybar{position:static;border-top:0;padding:0;background:none}
 }
+/* Printable monthly report: a full-screen preview of both FPD forms. The same drawing makes the PDF. */
+.sheetbar{gap:8px;flex-wrap:wrap}
+body.rpt-open{overflow:hidden}
+.rpt-view{position:fixed;inset:0;z-index:25;background:var(--bg);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.rpt-in{max-width:1100px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.rpt-in .hint{margin-top:-6px}
+.rpt-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rpt-head h2{margin:0;font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.02em;line-height:1.1}
+.rpt-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.rpt-fields label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.rpt-fields input{font:inherit;font-size:16px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:100%;min-width:0}
+.rpt-fields input:focus{border-color:var(--accent);outline:none}
+.paper-box{background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,.18);overflow:hidden}
+.paper-box svg{display:block;width:100%;height:auto}
+.rpt-in .copybar{margin-top:auto}
+@media (min-width:900px){.rpt-in .copybar{position:sticky;bottom:0;padding:12px 0 16px;background:var(--bg);border-top:1px solid var(--line)}.rpt-in .copybar .btn{flex:none;padding:0 32px}}
+@media print{
+  @page{size:11in 8.5in;margin:0}
+  html,body{background:#fff!important}
+  body.rpt-open{overflow:visible}
+  body.rpt-open .wrap,body.rpt-open .toast,body.rpt-open .modal{display:none!important}
+  body.rpt-open .rpt-view{position:static;overflow:visible;background:#fff}
+  body.rpt-open .rpt-in{display:block;padding:0;max-width:none}
+  body.rpt-open .rpt-in>:not(.paper-box){display:none!important}
+  body.rpt-open .paper-box{border:0;border-radius:0;box-shadow:none;width:11in;height:8.45in;overflow:hidden}
+  body.rpt-open .paper-box svg{width:11in;height:8.45in}
+}
 @media (prefers-reduced-motion:reduce){.tw{transition:none}}
 </style>
 </head>
@@ -272,7 +299,7 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
       </div>
     </div>
     <div class="list sheet" id="sheet"></div>
-    <div class="sheetbar"><button class="ghost" id="copy" type="button">Copy numbers</button></div>
+    <div class="sheetbar"><button class="ghost" id="printBtn" type="button">Print report</button><button class="ghost" id="copy" type="button">Copy numbers</button></div>
   </section>
 
   <details id="dataBox">
@@ -457,11 +484,34 @@ code{font-family:var(--mono);font-size:12.5px;background:var(--tile);padding:1px
   </form>
 </div>
 
+<div class="rpt-view" id="rptView" hidden role="dialog" aria-modal="true" aria-labelledby="rptTitle">
+  <div class="rpt-in">
+    <div class="pagebar"><button class="ghost" id="rptBack" type="button">‹ Back</button></div>
+    <div class="rpt-head">
+      <h2 id="rptTitle">Monthly report</h2>
+      <div class="nav">
+        <button id="rptPrev" type="button" aria-label="Previous month">‹</button>
+        <strong id="rptMonth">—</strong>
+        <button id="rptNext" type="button" aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="rpt-fields">
+      <label for="rptName">Your name<input id="rptName" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="next"></label>
+      <label for="rptBadge">Badge number<input id="rptBadge" maxlength="20" autocomplete="off" autocapitalize="characters" enterkeyhint="next"></label>
+      <label for="rptMiles">Total miles this month<input id="rptMiles" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" enterkeyhint="done"></label>
+    </div>
+    <p class="hint">All three are optional. Leave one empty and its line prints blank so you can write it in. Your name and badge are kept on this device for next time.</p>
+    <div class="paper-box" id="paperBox" aria-label="Report preview"></div>
+    <div class="copybar"><button class="btn" id="rptGo" type="button">Print or save PDF</button></div>
+    <p class="hint" id="rptHow" style="margin-bottom:calc(16px + env(safe-area-inset-bottom,0px))"></p>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden role="status"><span id="toastMsg"></span><button id="toastUndo" type="button" hidden>Undo</button></div>
 
 <script>
 "use strict";
-const APP_VERSION = "5.2.0";
+const APP_VERSION = "5.3.0";
 
 /* ---------- Categories. Never rename a key: stats are stored by key. ---------- */
 const CATS = [
@@ -1036,6 +1086,197 @@ if (navigator.storage && navigator.storage.persist) navigator.storage.persist().
 if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
+
+/* ---------- Printable monthly report ----------
+   Both FPD forms on one landscape letter page, laid out like the paper form. One drawing (a list of text and
+   line steps on a 792 x 612 point page) feeds the on-screen preview (SVG) and the PDF, so they always match.
+   The PDF is written right here in the app, with no library and nothing sent anywhere. */
+const OKEY = "dutylog."+CHANNEL+".officer";
+function loadOfficer(){
+  try {
+    const o = JSON.parse(localStorage.getItem(OKEY)||"{}") || {};
+    return {name: typeof o.name==="string" ? o.name : "", badge: typeof o.badge==="string" ? o.badge : "",
+      miles: o.miles && typeof o.miles==="object" ? o.miles : {}};
+  } catch(e){ return {name:"", badge:"", miles:{}}; }
+}
+let OFF = loadOfficer();
+function saveOfficer(){ try { localStorage.setItem(OKEY, JSON.stringify(OFF)); } catch(e){} }
+
+/* The paper form's own wording, in the same order as REPORT's citation lines (Other comes last). */
+const FORM_CIT = ["DUI ARRESTS (ALCOHOL)","DUI ARRESTS (DRUGS)","SEATBELT CITATIONS","CHILD RESTRAINT CITATIONS",
+  "FELONY ARRESTS","MISDEMEANOR ARRESTS","DWLS CITATIONS","NO DRIVERS LICENSE CITATIONS","NO INSURANCE CITATIONS",
+  "SPEEDING CITATIONS","RECKLESS DRIVING CITATIONS","CARELESS DRIVING CITATIONS","RUNNING STOP SIGN/RED LIGHT CITATIONS",
+  "NO TAG","DEFECTIVE EQUIPMENT","TINT","MISD WARRANTS/FELONY WARRANTS","IMPROPER PASSING","MISD DRUGS/FELONY DRUGS"];
+
+function reportData(m){
+  const docs = monthDocs(m), t = totals(docs);
+  const v = keys => keys.map(k=>t[k]||0).join(" / ");
+  const rows = REPORT[0].rows.filter(r=>r[1][0]!=="other_cit");
+  const n = t.other_cit||0, list = otherList(docs);
+  return {
+    month: monthName(m), name: OFF.name.trim(), badge: OFF.badge.trim(), miles: String(OFF.miles[m]||"").trim(),
+    cit: rows.map((r,i)=>[FORM_CIT[i]||r[0].toUpperCase(), v(r[1])]),
+    other: n ? n+(list ? " ("+list+")" : "") : "0",
+    act: {accidents:v(["accidents"]), calls:v(["calls"]), reports:v(["reports"]), assist:v(["assist"]), special:v(["special"])},
+  };
+}
+
+/* Helvetica / Arial character widths (per 1000 units) for printable ASCII, so text lines up the same in both. */
+const HW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const HBW = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+const plain = s => String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/×/g,"x")
+  .replace(/[–—]/g,"-").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[^\x20-\x7e]/g,"?");
+function textW(s, size, bold){ const w = bold ? HBW : HW; let n = 0; for (let i=0;i<s.length;i++){ const c = s.charCodeAt(i); n += c>=32&&c<=126 ? w[c-32] : 556; } return n*size/1000; }
+
+function layoutReport(d){
+  const ops = [];
+  const T = (x,y,s,size,bold)=>ops.push({k:"t", x, y, s:plain(s), size, bold:!!bold});
+  const L = (x1,y1,x2,y2,w)=>ops.push({k:"l", x1, y1, x2, y2, w:w||0.75});
+  const C = (cx,y,s,size,bold)=>{ s = plain(s); T(cx-textW(s,size,bold)/2, y, s, size, bold); };
+  const V = (x1,x2,y,val)=>{ const s = plain(val); if (!s) return; let size = 10.5; while (size>6 && textW(s,size,true)>x2-x1-6) size -= 0.5; C((x1+x2)/2, y-1, s, size, true); };
+  const F = (x,y,label,val,end,size)=>{ const s = plain(label); T(x,y,s,size); const x1 = x+textW(s,size,false)+3; L(x1,y+2,end,y+2); V(x1,end,y,val); return x1; };
+
+  // Left: Monthly Citation Report
+  const lx = 54, lr = 372, lc = (lx+lr)/2;
+  C(lc, 62, "FLORENCE POLICE DEPARTMENT", 12);
+  C(lc, 80, "MONTHLY CITATION REPORT", 10);
+  F(lx, 106, "OFFICER", d.name, lr, 9);
+  F(lx, 125, "BADGE#", d.badge, lr, 9);
+  F(lx, 144, "DATE:", d.month, lr, 9);
+  let y = 170;
+  for (const [label,val] of d.cit){ T(lx, y, label, 8.5); L(296, y+2, lr, y+2); V(296, lr, y, val); y += 19.5; }
+  const ol = "OTHER:", ox = lx+textW(ol,8.5,false)+3;
+  T(lx, y, ol, 8.5);
+  const words = plain(d.other).split(" "), lines = [""];
+  for (const w of words){
+    const room = (lines.length===1 ? lr-ox : lr-lx) - 6;
+    const tryLine = lines[lines.length-1] ? lines[lines.length-1]+" "+w : w;
+    if (textW(tryLine,8.5,true)<=room || !lines[lines.length-1]) lines[lines.length-1] = tryLine;
+    else if (lines.length<3) lines.push(w);
+    else { lines[2] = lines[2].replace(/\s*\S*$/,"")+" ..."; break; }
+  }
+  lines.forEach((s,i)=>{ const x0 = i ? lx : ox; L(x0, y+2+i*14, lr, y+2+i*14); if (s) T(x0+3, y+i*14-1, s, 8.5, true); });
+
+  L(396, 40, 396, 572, 0.75);
+
+  // Right: Monthly Activity Report
+  const rx = 420, rr = 738, rc = (rx+rr)/2;
+  C(rc, 62, "FLORENCE POLICE DEPARTMENT", 12);
+  C(rc, 80, "MONTHLY ACTIVITY REPORT", 10);
+  F(rx, 116, "MONTH:", d.month, 596, 10);
+  F(608, 116, "BADGE NO:", d.badge, rr, 10);
+  F(rx, 158, "NAME:", d.name, rr, 10);
+  F(rx, 204, "ACCIDENTS WORKED", d.act.accidents, 580, 10);
+  T(rx, 250, "MILEAGE:", 10);
+  const ml = "TOTAL MILES FOR THE MONTH", mw = textW(ml,10,false)+3+130;
+  F(rc-mw/2, 290, ml, d.miles, rc+mw/2, 10);
+  F(rx, 340, "PRIMARY CALLS:", d.act.calls, 584, 10);
+  F(596, 340, "OFFENSE REPORTS", d.act.reports, rr, 10);
+  F(rx, 390, "ASSISTANCE TO CITIZEN", d.act.assist, 584, 10);
+  F(596, 390, "SPECIAL ASSIGNMENT", d.act.special, rr, 10);
+  return ops;
+}
+
+function reportSvg(ops){
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS,"svg");
+  svg.setAttribute("viewBox","0 0 792 612"); svg.setAttribute("role","img");
+  svg.setAttribute("aria-label","Monthly Citation Report and Monthly Activity Report");
+  const bg = document.createElementNS(NS,"rect");
+  bg.setAttribute("width","792"); bg.setAttribute("height","612"); bg.setAttribute("fill","#fff"); svg.appendChild(bg);
+  for (const o of ops){
+    if (o.k==="t"){
+      const t = document.createElementNS(NS,"text");
+      t.setAttribute("x",o.x); t.setAttribute("y",o.y); t.setAttribute("font-size",o.size);
+      t.setAttribute("font-family","Helvetica, Arial, sans-serif"); t.setAttribute("fill","#000");
+      if (o.bold) t.setAttribute("font-weight","700");
+      t.textContent = o.s; svg.appendChild(t);
+    } else {
+      const l = document.createElementNS(NS,"line");
+      l.setAttribute("x1",o.x1); l.setAttribute("y1",o.y1); l.setAttribute("x2",o.x2); l.setAttribute("y2",o.y2);
+      l.setAttribute("stroke","#000"); l.setAttribute("stroke-width",o.w); svg.appendChild(l);
+    }
+  }
+  return svg;
+}
+
+function reportPdf(ops, title){
+  const esc = s => s.replace(/[\\()]/g, m=>"\\"+m);
+  const f = n => String(Math.round(n*100)/100);
+  let c = "0 g 0 G\n";
+  for (const o of ops){
+    if (o.k==="t") c += "BT /"+(o.bold?"F2":"F1")+" "+f(o.size)+" Tf "+f(o.x)+" "+f(612-o.y)+" Td ("+esc(o.s)+") Tj ET\n";
+    else c += f(o.w)+" w "+f(o.x1)+" "+f(612-o.y1)+" m "+f(o.x2)+" "+f(612-o.y2)+" l S\n";
+  }
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>",
+    "<< /Length "+c.length+" >>\nstream\n"+c+"endstream",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    "<< /Title ("+esc(plain(title))+") /Producer (Shift Log) >>",
+  ];
+  let out = "%PDF-1.4\n"; const at = [];
+  objs.forEach((o,i)=>{ at.push(out.length); out += (i+1)+" 0 obj\n"+o+"\nendobj\n"; });
+  const xref = out.length;
+  out += "xref\n0 "+(objs.length+1)+"\n0000000000 65535 f \n"+at.map(n=>String(n).padStart(10,"0")+" 00000 n \n").join("")
+    + "trailer\n<< /Size "+(objs.length+1)+" /Root 1 0 R /Info 7 0 R >>\nstartxref\n"+xref+"\n%%EOF\n";
+  return new TextEncoder().encode(out);
+}
+
+const SHARE_PDF = isIOS || /android/i.test(navigator.userAgent);
+function renderReport(){
+  $("rptMonth").textContent = monthName(viewMonth);
+  $("rptNext").disabled = viewMonth >= nowMonth();
+  const box = $("paperBox"); box.innerHTML = "";
+  box.appendChild(reportSvg(layoutReport(reportData(viewMonth))));
+}
+function fillReportFields(){
+  $("rptName").value = OFF.name; $("rptBadge").value = OFF.badge; $("rptMiles").value = OFF.miles[viewMonth]||"";
+}
+function openReport(){
+  OFF = loadOfficer();
+  fillReportFields(); renderReport();
+  $("rptHow").textContent = SHARE_PDF
+    ? "Opens your share menu with the report as a PDF. Tap Print to print it, or Save to Files to keep it."
+    : "Opens the print window. Pick your printer, or pick Save as PDF to keep a copy.";
+  $("rptView").hidden = false; $("rptView").scrollTop = 0;
+  document.body.classList.add("rpt-open");
+}
+function closeReport(){ $("rptView").hidden = true; document.body.classList.remove("rpt-open"); renderSheet(); }
+function reportMonth(n){
+  const m = shiftMonth(viewMonth, n);
+  if (m > nowMonth()) return;
+  viewMonth = m; fillReportFields(); renderReport();
+}
+async function printReport(){
+  if (!SHARE_PDF){ window.print(); return; }
+  const name = "FPD-monthly-report-"+viewMonth+".pdf";
+  const file = new File([reportPdf(layoutReport(reportData(viewMonth)), "FPD Monthly Report - "+monthName(viewMonth))], name, {type:"application/pdf"});
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Monthly report"}); return; }
+  } catch(e){ if (e && e.name==="AbortError") return; }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  toast("Report saved to your downloads.");
+}
+$("printBtn").addEventListener("click", openReport);
+$("rptBack").addEventListener("click", closeReport);
+$("rptPrev").addEventListener("click", ()=>reportMonth(-1));
+$("rptNext").addEventListener("click", ()=>reportMonth(1));
+$("rptGo").addEventListener("click", printReport);
+$("rptName").addEventListener("input", ()=>{ OFF.name = $("rptName").value.slice(0,60); saveOfficer(); renderReport(); });
+$("rptBadge").addEventListener("input", ()=>{ OFF.badge = $("rptBadge").value.slice(0,20); saveOfficer(); renderReport(); });
+$("rptMiles").addEventListener("input", ()=>{
+  const v = $("rptMiles").value.replace(/\D/g,"").slice(0,6); $("rptMiles").value = v;
+  if (v) OFF.miles[viewMonth] = v; else delete OFF.miles[viewMonth];
+  saveOfficer(); renderReport();
+});
+for (const id of ["rptName","rptBadge","rptMiles"]) $(id).addEventListener("keydown", e=>{ if (e.key==="Enter") e.target.blur(); });
+document.addEventListener("keydown", e=>{ if (e.key==="Escape" && !$("rptView").hidden) closeReport(); });
+window.addEventListener("beforeprint", ()=>{ if (!$("rptView").hidden) renderReport(); });
 
 /* ---------- Notes: pages kept on this device. A private page is encrypted with its own passcode. ----------
    Private text is sealed with AES-GCM using a key made from the passcode with PBKDF2 (the browser's built-in
